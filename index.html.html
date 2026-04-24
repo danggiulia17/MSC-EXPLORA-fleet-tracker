@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="refresh" content="900">
+<title>MSC & Explora Fleet Tracker</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css"/>
+<style>
+* { box-sizing:border-box; margin:0; padding:0; font-family:Verdana,sans-serif; }
+body { background:#d8e8f0; height:100vh; display:flex; flex-direction:column; overflow:hidden; }
+
+header {
+  background:linear-gradient(135deg,#0a1628,#122444,#0d1e3a);
+  border-bottom:3px solid #1e3d70;
+  padding:12px 24px 18px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  flex-shrink:0;
+  box-shadow:0 4px 16px rgba(0,0,0,.4);
+}
+.title { text-align:center; flex:1; }
+.title h1 { font-size:19px; font-weight:700; letter-spacing:2px; color:#fff; text-transform:uppercase; }
+.title p  { font-size:10px; color:#7aaddb; letter-spacing:3px; text-transform:uppercase; margin-top:4px; }
+
+.info { display:flex; align-items:center; gap:20px; font-size:11px; color:#7aaddb; min-width:260px; justify-content:flex-end; }
+.dot  { width:8px; height:8px; border-radius:50%; background:#22c55e;
+         animation:pulse 2s infinite; display:inline-block; margin-right:5px; }
+@keyframes pulse {
+  0%,100% { opacity:1; box-shadow:0 0 0 0 rgba(34,197,94,.4); }
+  50%      { opacity:.5; box-shadow:0 0 0 5px rgba(34,197,94,0); }
+}
+.on  { color:#22c55e; font-weight:700; }
+.off { color:#f59e0b; font-weight:700; }
+
+#map { flex:1; }
+
+.panel {
+  position:absolute;
+  top:88px; right:14px;
+  width:310px;
+  background:rgba(255,255,255,.97);
+  border:1px solid #b8cedd;
+  border-radius:10px;
+  box-shadow:0 4px 20px rgba(0,0,0,.13);
+  z-index:900;
+  display:flex;
+  flex-direction:column;
+  max-height:calc(100vh - 104px);
+  overflow:hidden;
+}
+.panel-title {
+  font-size:11px; font-weight:700; letter-spacing:2px;
+  text-transform:uppercase; color:#5a7a9a;
+  padding:9px 14px 7px;
+  border-bottom:1px solid #d0e0ec;
+  background:#eef4fa;
+}
+.list { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+.cls  {
+  font-size:9px; font-weight:700; letter-spacing:2px;
+  text-transform:uppercase; color:#9ab4cc;
+  padding:4px 14px 2px; background:#f5f9fd;
+}
+.row {
+  display:flex; align-items:center; gap:7px;
+  padding:3px 11px; cursor:pointer;
+  border-bottom:1px solid #eef3f8;
+  transition:background .12s;
+}
+.row:hover { background:#e4eef8; }
+.dot2 { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+.n    { font-size:12px; color:#9ab4cc; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.n.on { color:#1a3050; font-weight:700; }
+.n.st { color:#7890a8; font-style:italic; }
+.b    { font-size:10px; padding:1px 6px; border-radius:3px; flex-shrink:0; font-weight:700;
+         max-width:90px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.as   { background:#dbeafe; color:#1d4ed8; }
+.ip   { background:#dcfce7; color:#166534; }
+.of   { background:#fef3c7; color:#92400e; }
+.spd  { font-size:10px; color:#9ab4cc; flex-shrink:0; }
+
+.leaflet-popup-content-wrapper {
+  background:#fff !important; border:1px solid #b8cedd !important;
+  border-radius:10px !important; font-family:Verdana,sans-serif !important;
+  box-shadow:0 8px 24px rgba(0,0,0,.18) !important;
+}
+.leaflet-popup-tip { background:#fff !important; }
+</style>
+</head>
+<body>
+
+<header>
+  <div style="min-width:140px"></div>
+  <div class="title">
+    <h1>MSC Cruises &amp; Explora Journeys</h1>
+    <p>Fleet Live Tracker</p>
+  </div>
+  <div class="info">
+    <span>Online: <span class="on">7</span>/26 &nbsp;·&nbsp; Last known: <span class="off">0</span></span>
+    <span><span class="dot"></span>11:58:36 &nbsp;·&nbsp; Refresh ogni 15 min</span>
+  </div>
+</header>
+
+<div id="map"></div>
+
+<div class="panel">
+  <div class="panel-title">Flotta</div>
+  <div class="list">
+<div class="cls">Explora</div>
+<div class="row" onclick="fly('256389000')"><div class="dot" style="background:#FCD34D"></div><span class="n on">Explora I</span><span class="b ip" title="Pireo">Pireo</span><span class="spd">0 kn</span></div>
+<div class="row" ><div class="dot" style="background:#F59E0B;opacity:0.28"></div><span class="n">Explora II</span><span class="spd"></span></div>
+<div class="row" onclick="fly('247503500')"><div class="dot" style="background:#D97706"></div><span class="n on">Explora III</span><span class="b ip" title="Sea Trial Genova">Sea Trial Gen…</span><span class="spd">0 kn</span></div>
+<div class="cls">World</div>
+<div class="row" onclick="fly('256070000')"><div class="dot" style="background:#9CA3AF"></div><span class="n on">MSC World Europa</span><span class="b ip" title="Barcellona">Barcellona</span><span class="spd">0 kn</span></div>
+<div class="row" ><div class="dot" style="background:#374151;opacity:0.28"></div><span class="n">MSC World America</span><span class="spd"></span></div>
+<div class="cls">Seaside</div>
+<div class="row" onclick="fly('248392000')"><div class="dot" style="background:#FB923C"></div><span class="n on">MSC Seaside</span><span class="b ip" title="Miami">Miami</span><span class="spd">0 kn</span></div>
+<div class="row" ><div class="dot" style="background:#EA580C;opacity:0.28"></div><span class="n">MSC Seaview</span><span class="spd"></span></div>
+<div class="row" ><div class="dot" style="background:#9A3412;opacity:0.28"></div><span class="n">MSC Seashore</span><span class="spd"></span></div>
+<div class="row" ><div class="dot" style="background:#431407;opacity:0.28"></div><span class="n">MSC Seascape</span><span class="spd"></span></div>
+<div class="cls">Fantasia</div>
+<div class="row" onclick="fly('370648000')"><div class="dot" style="background:#38BDF8"></div><span class="n on">MSC Fantasia</span><span class="b ip" title="Napoli">Napoli</span><span class="spd">0 kn</span></div>
+<div class="row" ><div class="dot" style="background:#0EA5E9;opacity:0.28"></div><span class="n">MSC Splendida</span><span class="spd"></span></div>
+<div class="row" onclick="fly('373178000')"><div class="dot" style="background:#0284C7"></div><span class="n on">MSC Divina</span><span class="b ip" title="Mykonos">Mykonos</span><span class="spd">0 kn</span></div>
+<div class="row" onclick="fly('371861000')"><div class="dot" style="background:#075985"></div><span class="n on">MSC Preziosa</span><span class="b ip" title="Noosl">Noosl</span><span class="spd">0 kn</span></div>
+<div class="row" ><div class="dot" style="background:#0C4A6E;opacity:0.28"></div><span class="n">MSC Meraviglia</span><span class="spd"></span></div>
+<div class="row" ><div class="dot" style="background:#0369A1;opacity:0.28"></div><span class="n">MSC Bellissima</span><span class="spd"></span></div>
+<div class="row" ><div class="dot" style="background:#023E6E;opacity:0.28"></div><span class="n">MSC Grandiosa</span><span class="spd"></span></div>
+<div class="row" ><div class="dot" style="background:#082040;opacity:0.28"></div><span class="n">MSC Virtuosa</span><span class="spd"></span></div>
+<div class="row" ><div class="dot" style="background:#041230;opacity:0.28"></div><span class="n">MSC Euribia</span><span class="spd"></span></div>
+<div class="cls">Musica</div>
+<div class="row" ><div class="dot" style="background:#4ADE80;opacity:0.28"></div><span class="n">MSC Musica</span><span class="spd"></span></div>
+<div class="row" ><div class="dot" style="background:#16A34A;opacity:0.28"></div><span class="n">MSC Orchestra</span><span class="spd"></span></div>
+<div class="row" ><div class="dot" style="background:#15803D;opacity:0.28"></div><span class="n">MSC Poesia</span><span class="spd"></span></div>
+<div class="row" ><div class="dot" style="background:#052E16;opacity:0.28"></div><span class="n">MSC Magnifica</span><span class="spd"></span></div>
+<div class="cls">Lirica</div>
+<div class="row" ><div class="dot" style="background:#C084FC;opacity:0.28"></div><span class="n">MSC Armonia</span><span class="spd"></span></div>
+<div class="row" ><div class="dot" style="background:#7C3AED;opacity:0.28"></div><span class="n">MSC Sinfonia</span><span class="spd"></span></div>
+<div class="row" ><div class="dot" style="background:#5B21B6;opacity:0.28"></div><span class="n">MSC Lirica</span><span class="spd"></span></div>
+<div class="row" ><div class="dot" style="background:#3B0764;opacity:0.28"></div><span class="n">MSC Opera</span><span class="spd"></span></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js"></script>
+<script>
+var map = L.map('map').setView([30,10],3);
+
+L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png',{
+  attribution:'© OpenStreetMap © CARTO', maxZoom:18, subdomains:'abcd'
+}).addTo(map);
+
+L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png',{
+  maxZoom:18, subdomains:'abcd', opacity:0.75
+}).addTo(map);
+
+var mkrs = {};
+
+function mark(lat,lon,svg,mmsi,popup,offline,lux) {
+  var b64 = btoa(unescape(encodeURIComponent(svg)));
+  var sz  = lux ? [36,21] : [48,28];
+  var anc = lux ? [18,10] : [24,14];
+  var ic  = L.icon({iconUrl:'data:image/svg+xml;base64,'+b64, iconSize:sz, iconAnchor:anc, popupAnchor:[0,-16]});
+  mkrs[mmsi] = L.marker([lat,lon],{icon:ic, opacity:offline?0.6:1}).addTo(map).bindPopup(popup,{maxWidth:270});
+}
+
+function fly(id) {
+  if(id==="256070000") map.setView([41.34189166666667,2.1704133333333333],7);
+  if(id==="256389000") map.setView([37.93972833333333,23.63689],7);
+  if(id==="370648000") map.setView([42.100651666666664,11.772070000000001],7);
+  if(id==="371861000") map.setView([59.907465,10.717301666666666],7);
+  if(id==="248392000") map.setView([25.771418333333333,-80.15558166666666],7);
+  if(id==="373178000") map.setView([42.0978,11.775873333333333],7);
+  if(id==="247503500") map.setView([44.42006666666667,8.841178333333334],7);
+  if(mkrs[id]) mkrs[id].openPopup();
+}
+
+mark(41.34189166666667,2.1704133333333333,`<svg xmlns="http://www.w3.org/2000/svg" width="48" height="28" viewBox="0 0 100 52"><path d="M8 40 L8 34 Q8 32 10 32 L18 32 L18 24 Q18 22 20 22 L30 22 L30 18 Q30 16 32 16 L52 16 Q54 16 54 18 L54 22 L58 22 L58 16 Q58 14 60 14 L66 14 Q68 14 68 16 L68 22 L76 22 Q80 22 82 25 L88 32 L90 32 Q92 32 92 34 L92 40 Q70 46 50 46 Q28 46 8 40 Z" fill="#9CA3AF" stroke="#6a717d" stroke-width="2"/><rect x="19" y="23" width="34" height="8" rx="1.5" fill="#6a717d" opacity="0.3"/><rect x="59" y="14.5" width="8" height="7" rx="1" fill="#6a717d"/><path d="M62 10 L64 14.5 L60 14.5 Z" fill="#6a717d"/></svg>`,"256070000","<div style=\"min-width:200px\"><b style=\"color:#9CA3AF;font-size:13px\">MSC World Europa</b><div style=\"font-size:9px;color:#9ab4cc;letter-spacing:1px;margin:3px 0 10px\">World CLASS</div><table style=\"width:100%;font-size:11px;border-collapse:collapse\"><tr><td style=\"color:#9ab4cc\">Posizione</td><td style=\"text-align:right;font-weight:600\">Barcellona</td></tr><tr><td style=\"color:#9ab4cc\">Destinazione</td><td style=\"text-align:right;font-weight:600\">Barcellona</td></tr><tr><td style=\"color:#9ab4cc\">Velocità</td><td style=\"text-align:right;font-weight:600\">0.0 kn</td></tr><tr><td style=\"color:#9ab4cc\">Rotta</td><td style=\"text-align:right;font-weight:600\">189°</td></tr><tr><td style=\"color:#9ab4cc\">Lat / Lon</td><td style=\"text-align:right;font-weight:600\">41.3419, 2.1704</td></tr><tr><td style=\"color:#9ab4cc\">Aggiornato</td><td style=\"text-align:right;font-weight:600\">2026-04-24 09:55</td></tr></table></div>",false,false);
+mark(42.100651666666664,11.772070000000001,`<svg xmlns="http://www.w3.org/2000/svg" width="48" height="28" viewBox="0 0 100 52"><path d="M8 40 L8 34 Q8 32 10 32 L18 32 L18 24 Q18 22 20 22 L30 22 L30 18 Q30 16 32 16 L52 16 Q54 16 54 18 L54 22 L58 22 L58 16 Q58 14 60 14 L66 14 Q68 14 68 16 L68 22 L76 22 Q80 22 82 25 L88 32 L90 32 Q92 32 92 34 L92 40 Q70 46 50 46 Q28 46 8 40 Z" fill="#38BDF8" stroke="#068bc6" stroke-width="2"/><rect x="19" y="23" width="34" height="8" rx="1.5" fill="#068bc6" opacity="0.3"/><rect x="59" y="14.5" width="8" height="7" rx="1" fill="#068bc6"/><path d="M62 10 L64 14.5 L60 14.5 Z" fill="#068bc6"/></svg>`,"370648000","<div style=\"min-width:200px\"><b style=\"color:#38BDF8;font-size:13px\">MSC Fantasia</b><div style=\"font-size:9px;color:#9ab4cc;letter-spacing:1px;margin:3px 0 10px\">Fantasia CLASS</div><table style=\"width:100%;font-size:11px;border-collapse:collapse\"><tr><td style=\"color:#9ab4cc\">Posizione</td><td style=\"text-align:right;font-weight:600\">Napoli</td></tr><tr><td style=\"color:#9ab4cc\">Destinazione</td><td style=\"text-align:right;font-weight:600\">Napoli</td></tr><tr><td style=\"color:#9ab4cc\">Velocità</td><td style=\"text-align:right;font-weight:600\">0.0 kn</td></tr><tr><td style=\"color:#9ab4cc\">Rotta</td><td style=\"text-align:right;font-weight:600\">315°</td></tr><tr><td style=\"color:#9ab4cc\">Lat / Lon</td><td style=\"text-align:right;font-weight:600\">42.1007, 11.7721</td></tr><tr><td style=\"color:#9ab4cc\">Aggiornato</td><td style=\"text-align:right;font-weight:600\">2026-04-24 09:50</td></tr></table></div>",false,false);
+mark(59.907465,10.717301666666666,`<svg xmlns="http://www.w3.org/2000/svg" width="48" height="28" viewBox="0 0 100 52"><path d="M8 40 L8 34 Q8 32 10 32 L18 32 L18 24 Q18 22 20 22 L30 22 L30 18 Q30 16 32 16 L52 16 Q54 16 54 18 L54 22 L58 22 L58 16 Q58 14 60 14 L66 14 Q68 14 68 16 L68 22 L76 22 Q80 22 82 25 L88 32 L90 32 Q92 32 92 34 L92 40 Q70 46 50 46 Q28 46 8 40 Z" fill="#075985" stroke="#002753" stroke-width="2"/><rect x="19" y="23" width="34" height="8" rx="1.5" fill="#002753" opacity="0.3"/><rect x="59" y="14.5" width="8" height="7" rx="1" fill="#002753"/><path d="M62 10 L64 14.5 L60 14.5 Z" fill="#002753"/></svg>`,"371861000","<div style=\"min-width:200px\"><b style=\"color:#075985;font-size:13px\">MSC Preziosa</b><div style=\"font-size:9px;color:#9ab4cc;letter-spacing:1px;margin:3px 0 10px\">Fantasia CLASS</div><table style=\"width:100%;font-size:11px;border-collapse:collapse\"><tr><td style=\"color:#9ab4cc\">Posizione</td><td style=\"text-align:right;font-weight:600\">Noosl</td></tr><tr><td style=\"color:#9ab4cc\">Destinazione</td><td style=\"text-align:right;font-weight:600\">Noosl</td></tr><tr><td style=\"color:#9ab4cc\">Velocità</td><td style=\"text-align:right;font-weight:600\">0.0 kn</td></tr><tr><td style=\"color:#9ab4cc\">Rotta</td><td style=\"text-align:right;font-weight:600\">59°</td></tr><tr><td style=\"color:#9ab4cc\">Lat / Lon</td><td style=\"text-align:right;font-weight:600\">59.9075, 10.7173</td></tr><tr><td style=\"color:#9ab4cc\">Aggiornato</td><td style=\"text-align:right;font-weight:600\">2026-04-24 09:56</td></tr></table></div>",false,false);
+mark(25.771418333333333,-80.15558166666666,`<svg xmlns="http://www.w3.org/2000/svg" width="48" height="28" viewBox="0 0 100 52"><path d="M8 40 L8 34 Q8 32 10 32 L18 32 L18 24 Q18 22 20 22 L30 22 L30 18 Q30 16 32 16 L52 16 Q54 16 54 18 L54 22 L58 22 L58 16 Q58 14 60 14 L66 14 Q68 14 68 16 L68 22 L76 22 Q80 22 82 25 L88 32 L90 32 Q92 32 92 34 L92 40 Q70 46 50 46 Q28 46 8 40 Z" fill="#FB923C" stroke="#c9600a" stroke-width="2"/><rect x="19" y="23" width="34" height="8" rx="1.5" fill="#c9600a" opacity="0.3"/><rect x="59" y="14.5" width="8" height="7" rx="1" fill="#c9600a"/><path d="M62 10 L64 14.5 L60 14.5 Z" fill="#c9600a"/></svg>`,"248392000","<div style=\"min-width:200px\"><b style=\"color:#FB923C;font-size:13px\">MSC Seaside</b><div style=\"font-size:9px;color:#9ab4cc;letter-spacing:1px;margin:3px 0 10px\">Seaside CLASS</div><table style=\"width:100%;font-size:11px;border-collapse:collapse\"><tr><td style=\"color:#9ab4cc\">Posizione</td><td style=\"text-align:right;font-weight:600\">Miami</td></tr><tr><td style=\"color:#9ab4cc\">Destinazione</td><td style=\"text-align:right;font-weight:600\">Miami</td></tr><tr><td style=\"color:#9ab4cc\">Velocità</td><td style=\"text-align:right;font-weight:600\">0.0 kn</td></tr><tr><td style=\"color:#9ab4cc\">Rotta</td><td style=\"text-align:right;font-weight:600\">294°</td></tr><tr><td style=\"color:#9ab4cc\">Lat / Lon</td><td style=\"text-align:right;font-weight:600\">25.7714, -80.1556</td></tr><tr><td style=\"color:#9ab4cc\">Aggiornato</td><td style=\"text-align:right;font-weight:600\">2026-04-24 09:51</td></tr></table></div>",false,false);
+mark(42.0978,11.775873333333333,`<svg xmlns="http://www.w3.org/2000/svg" width="48" height="28" viewBox="0 0 100 52"><path d="M8 40 L8 34 Q8 32 10 32 L18 32 L18 24 Q18 22 20 22 L30 22 L30 18 Q30 16 32 16 L52 16 Q54 16 54 18 L54 22 L58 22 L58 16 Q58 14 60 14 L66 14 Q68 14 68 16 L68 22 L76 22 Q80 22 82 25 L88 32 L90 32 Q92 32 92 34 L92 40 Q70 46 50 46 Q28 46 8 40 Z" fill="#0284C7" stroke="#005295" stroke-width="2"/><rect x="19" y="23" width="34" height="8" rx="1.5" fill="#005295" opacity="0.3"/><rect x="59" y="14.5" width="8" height="7" rx="1" fill="#005295"/><path d="M62 10 L64 14.5 L60 14.5 Z" fill="#005295"/></svg>`,"373178000","<div style=\"min-width:200px\"><b style=\"color:#0284C7;font-size:13px\">MSC Divina</b><div style=\"font-size:9px;color:#9ab4cc;letter-spacing:1px;margin:3px 0 10px\">Fantasia CLASS</div><table style=\"width:100%;font-size:11px;border-collapse:collapse\"><tr><td style=\"color:#9ab4cc\">Posizione</td><td style=\"text-align:right;font-weight:600\">Mykonos</td></tr><tr><td style=\"color:#9ab4cc\">Destinazione</td><td style=\"text-align:right;font-weight:600\">Mykonos</td></tr><tr><td style=\"color:#9ab4cc\">Velocità</td><td style=\"text-align:right;font-weight:600\">0.0 kn</td></tr><tr><td style=\"color:#9ab4cc\">Rotta</td><td style=\"text-align:right;font-weight:600\">316°</td></tr><tr><td style=\"color:#9ab4cc\">Lat / Lon</td><td style=\"text-align:right;font-weight:600\">42.0978, 11.7759</td></tr><tr><td style=\"color:#9ab4cc\">Aggiornato</td><td style=\"text-align:right;font-weight:600\">2026-04-24 09:57</td></tr></table></div>",false,false);
+mark(37.93972833333333,23.63689,`<svg xmlns="http://www.w3.org/2000/svg" width="36" height="21" viewBox="0 0 100 52"><path d="M6 40 L10 33 Q13 29 17 29 L23 29 L23 21 Q23 18 26 18 L40 18 L40 14 Q40 12 42 12 L62 12 Q64 12 64 14 L64 18 L70 18 L70 13 Q70 10 74 10 L82 10 Q86 10 86 13 L86 18 L88 18 Q92 18 94 22 L96 30 L96 38 Q72 46 50 46 Q26 46 6 40 Z" fill="#FCD34D" stroke="#caa11b" stroke-width="2"/><rect x="24" y="19" width="39" height="8" rx="2" fill="#caa11b" opacity="0.25"/><rect x="71" y="10" width="14" height="8" rx="3" fill="#caa11b"/><path d="M75 4 Q78 7 81 10 L71 10 Q74 7 75 4 Z" fill="#caa11b"/></svg>`,"256389000","<div style=\"min-width:200px\"><b style=\"color:#FCD34D;font-size:13px\">Explora I</b><div style=\"font-size:9px;color:#9ab4cc;letter-spacing:1px;margin:3px 0 10px\">Explora CLASS</div><table style=\"width:100%;font-size:11px;border-collapse:collapse\"><tr><td style=\"color:#9ab4cc\">Posizione</td><td style=\"text-align:right;font-weight:600\">Pireo</td></tr><tr><td style=\"color:#9ab4cc\">Destinazione</td><td style=\"text-align:right;font-weight:600\">Pireo</td></tr><tr><td style=\"color:#9ab4cc\">Velocità</td><td style=\"text-align:right;font-weight:600\">0.0 kn</td></tr><tr><td style=\"color:#9ab4cc\">Rotta</td><td style=\"text-align:right;font-weight:600\">8°</td></tr><tr><td style=\"color:#9ab4cc\">Lat / Lon</td><td style=\"text-align:right;font-weight:600\">37.9397, 23.6369</td></tr><tr><td style=\"color:#9ab4cc\">Aggiornato</td><td style=\"text-align:right;font-weight:600\">2026-04-24 09:52</td></tr></table></div>",false,true);
+mark(44.42006666666667,8.841178333333334,`<svg xmlns="http://www.w3.org/2000/svg" width="36" height="21" viewBox="0 0 100 52"><path d="M6 40 L10 33 Q13 29 17 29 L23 29 L23 21 Q23 18 26 18 L40 18 L40 14 Q40 12 42 12 L62 12 Q64 12 64 14 L64 18 L70 18 L70 13 Q70 10 74 10 L82 10 Q86 10 86 13 L86 18 L88 18 Q92 18 94 22 L96 30 L96 38 Q72 46 50 46 Q26 46 6 40 Z" fill="#D97706" stroke="#a74500" stroke-width="2"/><rect x="24" y="19" width="39" height="8" rx="2" fill="#a74500" opacity="0.25"/><rect x="71" y="10" width="14" height="8" rx="3" fill="#a74500"/><path d="M75 4 Q78 7 81 10 L71 10 Q74 7 75 4 Z" fill="#a74500"/></svg>`,"247503500","<div style=\"min-width:200px\"><b style=\"color:#D97706;font-size:13px\">Explora III</b><div style=\"font-size:9px;color:#9ab4cc;letter-spacing:1px;margin:3px 0 10px\">Explora CLASS</div><table style=\"width:100%;font-size:11px;border-collapse:collapse\"><tr><td style=\"color:#9ab4cc\">Posizione</td><td style=\"text-align:right;font-weight:600\">Sea Trial Genova</td></tr><tr><td style=\"color:#9ab4cc\">Destinazione</td><td style=\"text-align:right;font-weight:600\">Sea Trial Genova</td></tr><tr><td style=\"color:#9ab4cc\">Velocità</td><td style=\"text-align:right;font-weight:600\">0.0 kn</td></tr><tr><td style=\"color:#9ab4cc\">Rotta</td><td style=\"text-align:right;font-weight:600\">198°</td></tr><tr><td style=\"color:#9ab4cc\">Lat / Lon</td><td style=\"text-align:right;font-weight:600\">44.4201, 8.8412</td></tr><tr><td style=\"color:#9ab4cc\">Aggiornato</td><td style=\"text-align:right;font-weight:600\">2026-04-24 09:48</td></tr></table></div>",false,true);
+</script>
+</body>
+</html>
