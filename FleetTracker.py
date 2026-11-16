@@ -665,21 +665,28 @@ async def run():
     try:
         async with websockets.connect(
             url,
+            open_timeout=60,
             ping_interval=20,
             ping_timeout=20,
             close_timeout=10
         ) as ws:
 
-            await ws.send(json.dumps({
+            subscription = {
                 "APIKey": API_KEY,
                 "BoundingBoxes": [[[-90, -180], [90, 180]]],
                 "FiltersShipMMSI": list(FLEET.keys()),
-                "FilterMessageTypes": ["PositionReport", "ShipStaticData"]
-            }))
+                "FilterMessageTypes": [
+                    "PositionReport",
+                    "ShipStaticData"
+                ]
+            }
+
+            await ws.send(json.dumps(subscription))
 
             print(
-                f"[{datetime.now():%H:%M:%S}] connesso — "
-                f"{len(FLEET)} navi — raccolta per {COLLECTION_MINUTES} minuti"
+                f"[{datetime.now():%H:%M:%S}] connesso - "
+                f"{len(FLEET)} navi - raccolta per "
+                f"{COLLECTION_MINUTES} minuti"
             )
 
             while True:
@@ -700,46 +707,101 @@ async def run():
                 except asyncio.TimeoutError:
                     continue
 
-                msg = json.loads(raw)
-                mmsi = str(msg["MetaData"]["MMSI"])
-
-                if mmsi not in FLEET:
+                try:
+                    msg = json.loads(raw)
+                except json.JSONDecodeError:
+                    print(f"Messaggio AISStream non JSON: {raw}")
                     continue
 
-                if msg["MessageType"] == "PositionReport":
-                    pr = msg["Message"]["PositionReport"]
+                if msg.get("MessageType") == "SubscriptionConfirmation":
+                    print("  → sottoscrizione AISStream confermata")
+                    continue
 
-                    p = {
+                metadata = msg.get("MetaData")
+
+                if not metadata:
+                    print(
+                        f"  → messaggio AISStream ignorato: "
+                        f"{msg.get('MessageType', 'tipo sconosciuto')}"
+                    )
+                    continue
+
+                mmsi = str(metadata.get("MMSI", ""))
+
+                if not mmsi or mmsi not in FLEET:
+                    continue
+
+                message_type = msg.get("MessageType")
+                message = msg.get("Message", {})
+
+                if message_type == "PositionReport":
+                    pr = message.get("PositionReport")
+
+                    if not pr:
+                        print(
+                            "PositionReport senza dati: "
+                            f"{msg}"
+                        )
+                        continue
+
+                    lat = pr.get("Latitude")
+                    lon = pr.get("Longitude")
+
+                    if lat is None or lon is None:
+                        continue
+
+                    position = {
                         **known.get(mmsi, {}),
-                        "lat": pr["Latitude"],
-                        "lon": pr["Longitude"],
+                        "lat": lat,
+                        "lon": lon,
                         "sog": pr.get("Sog", 0),
-                        "heading": pr.get("TrueHeading") or pr.get("Cog", 0),
-                        "status": pr.get("NavigationalStatus", 0),
-                        "timestamp": msg["MetaData"]["time_utc"],
+                        "heading": (
+                            pr.get("TrueHeading")
+                            or pr.get("Cog", 0)
+                        ),
+                        "status": pr.get(
+                            "NavigationalStatus",
+                            0
+                        ),
+                        "timestamp": metadata.get(
+                            "time_utc",
+                            ""
+                        ),
                     }
 
-                    live[mmsi] = p
-                    known[mmsi] = p
+                    live[mmsi] = position
+                    known[mmsi] = position
 
                     print(
                         f"  {FLEET[mmsi][0]}: "
-                        f"{pr['Latitude']:.3f}, {pr['Longitude']:.3f}"
+                        f"{lat:.3f}, {lon:.3f}"
                     )
 
-                elif msg["MessageType"] == "ShipStaticData":
-                    dest = (
-                        msg["Message"]["ShipStaticData"]
-                        .get("Destination", "")
+                elif message_type == "ShipStaticData":
+                    static_data = message.get(
+                        "ShipStaticData",
+                        {}
                     )
 
-                    known.setdefault(mmsi, {})["destination"] = dest
+                    destination = static_data.get(
+                        "Destination",
+                        ""
+                    )
+
+                    known.setdefault(mmsi, {})[
+                        "destination"
+                    ] = destination
 
                     if mmsi in live:
-                        live[mmsi]["destination"] = dest
+                        live[mmsi][
+                            "destination"
+                        ] = destination
 
-    except Exception as e:
-        print(f"Connessione AISStream terminata con errore: {e}")
+    except Exception as error:
+        print(
+            "Connessione AISStream terminata con errore: "
+            f"{type(error).__name__}: {error}"
+        )
 
     finally:
         for mmsi, position in live.items():
@@ -749,8 +811,12 @@ async def run():
         write_excel()
         write_html()
 
-        print(f"[{datetime.now():%H:%M:%S}] esecuzione completata — "
-        f"{len(live)}/{len(FLEET)} navi ricevute in tempo reale")
+        print(
+            f"[{datetime.now():%H:%M:%S}] "
+            f"esecuzione completata - "
+            f"{len(live)}/{len(FLEET)} navi ricevute "
+            "in tempo reale"
+        )
 
 
 if __name__ == "__main__":
