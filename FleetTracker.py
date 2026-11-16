@@ -587,6 +587,12 @@ header {{
   box-shadow:0 8px 24px rgba(0,0,0,.18) !important;
 }}
 .leaflet-popup-tip {{ background:#fff !important; }}
+.leaflet-popup-tip {{ background:#fff !important; }}
+
+.leaflet-tile-pane {{
+  filter: brightness(0.78) contrast(1.16) saturate(0.72);
+}}
+</style>
 </style>
 </head>
 <body>
@@ -603,7 +609,7 @@ header {{
 </header>
 <div id="map"></div>
 <div class="panel">
-  <div class="panel-title">Flotta</div>
+  <div class="panel-title">Fleet</div>
   <div class="list">
 {sidebar()}
   </div>
@@ -611,11 +617,9 @@ header {{
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js"></script>
 <script>
 var map = L.map('map').setView([30,10],3);
-L.tileLayer('https://{{s}}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{{z}}/{{x}}/{{y}}{{r}}.png',{{
-  attribution:'© OpenStreetMap © CARTO', maxZoom:18, subdomains:'abcd'
-}}).addTo(map);
-L.tileLayer('https://{{s}}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{{z}}/{{x}}/{{y}}{{r}}.png',{{
-  maxZoom:18, subdomains:'abcd', opacity:0.75
+L.tileLayer('https://tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png', {{
+  attribution:'© OpenStreetMap contributors',
+  maxZoom:19
 }}).addTo(map);
 var mkrs = {{}};
 function mark(lat,lon,svg,mmsi,popup,offline,lux) {{
