@@ -50,6 +50,7 @@ PORTS = {
     "ITGOA": "Genova",
     "ITCIV": "Civitavecchia",
     "ITPAL": "Palermo",
+    "ITPMO": "Palermo",
     "ITNAP": "Napoli",
     "ITBRI": "Bari",
     "ITTRS": "Trieste",
@@ -234,6 +235,7 @@ PORTS = {
     "BRILS": "Ilheus",
     "BRITJ": "Itajai",
     "BRBZS": "Buzios",
+    "BRABZ": "Buzios",
     "BRANG": "Angra dos Reis",
     "BRILB": "Ilhabela",
     "BRCPB": "Copacabana",
@@ -352,12 +354,56 @@ PORTS = {
     "FJSUV": "Suva",
 }
 
+# Coordinate dei porti usate per riconoscere la posizione fisica della nave.
+PORT_GEOFENCES = {
+    "Genova": (44.4072, 8.9340, 18),
+    "Napoli": (40.8401, 14.2594, 18),
+    "Civitavecchia": (42.0924, 11.7957, 18),
+    "Palermo": (38.1250, 13.3700, 18),
+    "Messina": (38.1938, 15.5540, 15),
+    "Catania": (37.5025, 15.0950, 15),
+    "Bari": (41.1310, 16.8700, 15),
+    "Trieste": (45.6500, 13.7700, 18),
+    "Venezia": (45.4400, 12.3200, 18),
+    "Livorno": (43.5510, 10.3010, 15),
+    "La Spezia": (44.1050, 9.8250, 15),
+    "Cagliari": (39.2130, 9.1090, 15),
+
+    "Marseille": (43.3150, 5.3660, 20),
+    "Barcelona": (41.3540, 2.1650, 18),
+    "Valencia": (39.4400, -0.3150, 18),
+    "Palma de Mallorca": (39.5630, 2.6300, 18),
+    "Zeebrugge": (51.3400, 3.2040, 15),
+    "Southampton": (50.8950, -1.4050, 15),
+    "Rotterdam": (51.9500, 4.1500, 25),
+    "Hamburg": (53.5350, 9.9500, 20),
+
+    "Piraeus": (37.9400, 23.6350, 18),
+    "Katakolon": (37.6450, 21.3200, 12),
+    "Heraklion": (35.3430, 25.1450, 15),
+    "Corfu": (39.6250, 19.9050, 15),
+    "Istanbul": (41.0200, 28.9900, 20),
+    "Kusadasi": (37.8600, 27.2550, 15),
+
+    "La Valletta": (35.8950, 14.5100, 15),
+    "Lisbon": (38.7000, -9.1400, 18),
+    "Funchal": (32.6450, -16.9100, 15),
+
+    "Miami": (25.7780, -80.1770, 18),
+    "Port Canaveral": (28.4100, -80.6100, 18),
+    "New York": (40.6900, -74.0300, 20),
+    "Nassau": (25.0800, -77.3400, 15),
+    "Ocean Cay": (25.4210, -79.2040, 12),
+    "Santos": (-23.9650, -46.3000, 20),
+    "Buenos Aires": (-34.6000, -58.3700, 20),
+    "Rio de Janeiro": (-22.8900, -43.1800, 20),
+}
+
 # salvataggio ultime pos in file json
 live  = {}
 known = {}
 
 KNOWN_FILE = FOLDER / "fleet_known_positions.json"
-
 
 def load_known():
     global known
@@ -367,7 +413,6 @@ def load_known():
             print(f"  → caricate {len(known)} posizioni note da file")
         except Exception as e:
             print(f"  → impossibile leggere {KNOWN_FILE.name}: {e}")
-
 
 def save_known():
     try:
@@ -390,13 +435,57 @@ def port_name(raw):
     print(f"  → PORTO NON ANCORA MAPPATO DA AGGIUNGERE: {raw}")
     return raw.title()
 
-# porto vs at sea
-def location(p):
-    if float(p.get("sog", 0) or 0) > 1 and int(p.get("status", 0) or 0) in (0, 8):
-        return "At Sea"
-    dest = port_name(p.get("destination", ""))
-    return dest or "In Port"
+# porto fisico vs navigazione
+def distance_km(lat1, lon1, lat2, lon2):
+    from math import radians, sin, cos, sqrt, atan2
 
+    earth_radius_km = 6371.0
+
+    d_lat = radians(lat2 - lat1)
+    d_lon = radians(lon2 - lon1)
+
+    a = (
+        sin(d_lat / 2) ** 2
+        + cos(radians(lat1))
+        * cos(radians(lat2))
+        * sin(d_lon / 2) ** 2
+    )
+
+    c = 2 * atan2(sqrt(a), sqrt(1 - a))
+    return earth_radius_km * c
+
+def location(p):
+    if not p:
+        return ""
+
+    lat = p.get("lat")
+    lon = p.get("lon")
+    sog = float(p.get("sog", 0) or 0)
+
+    if lat is not None and lon is not None:
+        nearest_port = None
+        nearest_distance = None
+
+        for port, (port_lat, port_lon, radius_km) in PORT_GEOFENCES.items():
+            distance = distance_km(
+                float(lat),
+                float(lon),
+                port_lat,
+                port_lon
+            )
+
+            if distance <= radius_km:
+                if nearest_distance is None or distance < nearest_distance:
+                    nearest_port = port
+                    nearest_distance = distance
+
+        if nearest_port:
+            return nearest_port
+
+    # Non è vicino a un porto conosciuto e sta navigando
+    if sog > 1:
+        return "At Sea"
+    return "In Port"
 
 def darken(c, n=50):
     h = c.lstrip("#")
@@ -540,7 +629,7 @@ def sidebar():
                 badge = ''
 
             rows.append(
-                f'<div class="row" {fly}>'
+                f'<div class="row" data-mmsi="{mmsi}" {fly}>'
                 f'<div class="dot" style="{dot_style}"></div>'
                 f'<span class="{ncls}">{name}</span>'
                 f'{badge}'
@@ -571,12 +660,12 @@ def markers():
                f'<b style=\\"color:{color};font-size:13px\\">{name}</b>'
                f'<div style=\\"font-size:9px;color:#9ab4cc;letter-spacing:1px;margin:3px 0 10px\\">{cls} CLASS</div>'
                f'<table style=\\"width:100%;font-size:11px;border-collapse:collapse\\">'
-               f'<tr><td style=\\"color:#9ab4cc\\">Posizione</td><td style=\\"text-align:right;font-weight:600\\">{loc}</td></tr>'
-               f'<tr><td style=\\"color:#9ab4cc\\">Destinazione</td><td style=\\"text-align:right;font-weight:600\\">{dest}</td></tr>'
-               f'<tr><td style=\\"color:#9ab4cc\\">Velocità</td><td style=\\"text-align:right;font-weight:600\\">{spd:.1f} kn</td></tr>'
-               f'<tr><td style=\\"color:#9ab4cc\\">Rotta</td><td style=\\"text-align:right;font-weight:600\\">{hdg:.0f}°</td></tr>'
+               f'<tr><td style=\\"color:#9ab4cc\\">Current position</td><td style=\\"text-align:right;font-weight:600\\">{loc}</td></tr>'
+               f'<tr><td style=\\"color:#9ab4cc\\">AIS destination</td><td style=\\"text-align:right;font-weight:600\\">{dest}</td></tr>'
+               f'<tr><td style=\\"color:#9ab4cc\\">Speed</td><td style=\\"text-align:right;font-weight:600\\">{spd:.1f} kn</td></tr>'
+               f'<tr><td style=\\"color:#9ab4cc\\">Heading</td><td style=\\"text-align:right;font-weight:600\\">{hdg:.0f}°</td></tr>'
                f'<tr><td style=\\"color:#9ab4cc\\">Lat / Lon</td><td style=\\"text-align:right;font-weight:600\\">{lat:.4f}, {lon:.4f}</td></tr>'
-               f'<tr><td style=\\"color:#9ab4cc\\">Aggiornato</td><td style=\\"text-align:right;font-weight:600\\">{ts[:16]}</td></tr>'
+               f'<tr><td style=\\"color:#9ab4cc\\">Updated</td><td style=\\"text-align:right;font-weight:600\\">{ts[:16]}</td></tr>'
                f'</table></div>')
         lines.append(f'mark({lat},{lon},`{svg}`,"{mmsi}","{pop}",false,{"true" if lux else "false"});')
 
@@ -589,6 +678,7 @@ def markers():
         name, cls, color, lux = v
         svg  = ship_icon(color, lux, offline=True).replace("`", "'").replace("\\", "\\\\")
         dest = port_name(p.get("destination", "")) or "—"
+        loc = location(p)
         spd  = float(p.get("sog", 0) or 0)
         hdg  = float(p.get("heading", 0) or 0)
         ts   = str(p.get("timestamp", ""))
@@ -598,11 +688,12 @@ def markers():
                f'<div style=\\"font-size:9px;color:#9ab4cc;letter-spacing:1px;margin:3px 0 10px\\">'
                f'{cls} CLASS &nbsp;·&nbsp; <span style=\\"color:#f59e0b\\">Offline</span></div>'
                f'<table style=\\"width:100%;font-size:11px;border-collapse:collapse\\">'
-               f'<tr><td style=\\"color:#9ab4cc\\">Destinazione</td><td style=\\"text-align:right;font-weight:600\\">{dest}</td></tr>'
-               f'<tr><td style=\\"color:#9ab4cc\\">Velocità</td><td style=\\"text-align:right;font-weight:600\\">{spd:.1f} kn</td></tr>'
-               f'<tr><td style=\\"color:#9ab4cc\\">Rotta</td><td style=\\"text-align:right;font-weight:600\\">{hdg:.0f}°</td></tr>'
+               f'<tr><td style=\\"color:#9ab4cc\\">Last position</td><td style=\\"text-align:right;font-weight:600\\">{loc}</td></tr>'
+               f'<tr><td style=\\"color:#9ab4cc\\">AIS destination</td><td style=\\"text-align:right;font-weight:600\\">{dest}</td></tr>'
+               f'<tr><td style=\\"color:#9ab4cc\\">Speed</td><td style=\\"text-align:right;font-weight:600\\">{spd:.1f} kn</td></tr>'
+               f'<tr><td style=\\"color:#9ab4cc\\">Heading</td><td style=\\"text-align:right;font-weight:600\\">{hdg:.0f}°</td></tr>'
                f'<tr><td style=\\"color:#9ab4cc\\">Lat / Lon</td><td style=\\"text-align:right;font-weight:600\\">{lat:.4f}, {lon:.4f}</td></tr>'
-               f'<tr><td style=\\"color:#9ab4cc\\">Ultima nota</td><td style=\\"text-align:right;color:#f59e0b;font-weight:600\\">{ts[:16]}</td></tr>'
+               f'<tr><td style=\\"color:#9ab4cc\\">Last Update</td><td style=\\"text-align:right;color:#f59e0b;font-weight:600\\">{ts[:16]}</td></tr>'
                f'</table></div>')
         lines.append(f'mark({lat},{lon},`{svg}`,"{mmsi}","{pop}",true,{"true" if lux else "false"});')
 
@@ -613,291 +704,138 @@ def write_github_page(html_content: str):
     output_file.write_text(html_content, encoding="utf-8")
     print(f"  → generato {output_file.name}")
 
-
 def write_html():
-    now    = datetime.now().strftime("%H:%M:%S")
+    now = datetime.now().strftime("%H:%M:%S")
     online = len(live)
-    total  = len(FLEET)
-    n_off  = sum(1 for m in FLEET if m not in live and m in known)
-
-    all_pos = {**known, **live}
-    fly_js  = "\n".join(
-        f'  if(id==="{m}") map.setView([{p["lat"]},{p["lon"]}],7);'
-        for m, p in all_pos.items() if p.get("lat") is not None
-    )
-
+    total = len(FLEET)
+    n_off = sum(1 for m in FLEET if m not in live and m in known)
     html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta http-equiv="refresh" content="{REFRESH * 60}">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>MSC & Explora Fleet Tracker</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css"/>
-<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.css"/>
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.css">
 <style>
 * {{ box-sizing:border-box; margin:0; padding:0; font-family:Verdana,sans-serif; }}
 body {{ background:#d8e8f0; height:100vh; display:flex; flex-direction:column; overflow:hidden; }}
-header {{
-  background:linear-gradient(135deg,#0a1628,#122444,#0d1e3a);
-  border-bottom:1px solid #1e3d70;
-  padding:12px 24px 18px;
-  display:flex; align-items:center; justify-content:space-between;
-  flex-shrink:0; box-shadow:0 4px 16px rgba(0,0,0,.4);
-}}
+header {{ background:linear-gradient(135deg,#0a1628,#122444,#0d1e3a); border-bottom:1px solid #1e3d70; padding:12px 24px 18px; display:flex; align-items:center; justify-content:space-between; flex-shrink:0; box-shadow:0 4px 16px rgba(0,0,0,.4); }}
 .title {{ text-align:center; flex:1; }}
 .title h1 {{ font-size:19px; font-weight:700; letter-spacing:2px; color:#fff; text-transform:uppercase; }}
-.title p  {{ font-size:13px; color:#7aaddb; letter-spacing:3px; text-transform:uppercase; margin-top:4px; }}
+.title p {{ font-size:13px; color:#7aaddb; letter-spacing:3px; text-transform:uppercase; margin-top:4px; }}
 .info {{ display:flex; align-items:center; gap:20px; font-size:13px; color:#7aaddb; min-width:260px; justify-content:flex-end; }}
-.dot  {{ width:8px; height:8px; border-radius:50%; background:#22c55e;
-         animation:pulse 2s infinite; display:inline-block; margin-right:5px; }}
-@keyframes pulse {{
-  0%,100% {{ opacity:1; box-shadow:0 0 0 0 rgba(34,197,94,.4); }}
-  50%      {{ opacity:.5; box-shadow:0 0 0 5px rgba(34,197,94,0); }}
-}}
-.on  {{ color:#22c55e; font-weight:700; }}
+.dot {{ width:8px; height:8px; border-radius:50%; background:#22c55e; animation:pulse 2s infinite; display:inline-block; margin-right:5px; }}
+@keyframes pulse {{ 0%,100% {{ opacity:1; box-shadow:0 0 0 0 rgba(34,197,94,.4); }} 50% {{ opacity:.5; box-shadow:0 0 0 5px rgba(34,197,94,0); }} }}
+.on {{ color:#22c55e; font-weight:700; }}
 .off {{ color:#f59e0b; font-weight:700; }}
-#map {{ flex:1; }}
-.panel {{
-  position:absolute; top:88px; right:14px; width:310px;
-  background:rgba(255,255,255,.97); border:1px solid #b8cedd;
-  border-radius:10px; box-shadow:0 4px 20px rgba(0,0,0,.13);
-  z-index:900; display:flex; flex-direction:column;
-  max-height:calc(100vh - 104px); overflow:hidden;
-}}
-.panel-title {{
-  font-size:11px; font-weight:700; letter-spacing:2px;
-  text-transform:uppercase; color:#5a7a9a;
-  padding:9px 14px 7px; border-bottom:1px solid #d0e0ec; background:#eef4fa;
-}}
+#map {{ flex:1; min-height:0; }}
+.panel {{ position:absolute; top:88px; right:14px; width:310px; background:rgba(255,255,255,.97); border:1px solid #b8cedd; border-radius:10px; box-shadow:0 4px 20px rgba(0,0,0,.13); z-index:10; display:flex; flex-direction:column; max-height:calc(100vh - 104px); overflow:hidden; }}
+.panel-title {{ font-size:11px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:#5a7a9a; padding:9px 14px 7px; border-bottom:1px solid #d0e0ec; background:#eef4fa; }}
 .list {{ flex:1; display:flex; flex-direction:column; overflow:hidden; }}
-.cls  {{
-  font-size:9px; font-weight:700; letter-spacing:2px;
-  text-transform:uppercase; color:#9ab4cc;
-  padding:4px 14px 2px; background:#f5f9fd;}}
-.row {{
-  display:flex; align-items:center; gap:7px;
-  padding:3px 11px; cursor:pointer;
-  border-bottom:1px solid #eef3f8; transition:background .12s;}}
+.cls {{ font-size:9px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:#9ab4cc; padding:4px 14px 2px; background:#f5f9fd; }}
+.row {{ display:flex; align-items:center; gap:7px; padding:3px 11px; cursor:pointer; border-bottom:1px solid #eef3f8; transition:background .12s; }}
 .row:hover {{ background:#e4eef8; }}
-.n    {{ font-size:12px; color:#9ab4cc; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
+.row.selected-ship {{ background:#dbeafe; outline:2px solid #2563eb; outline-offset:-2px; }}
+.row.selected-ship .n {{ color:#0a2450; font-weight:700; }}
+.n {{ font-size:12px; color:#9ab4cc; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
 .n.on {{ color:#1a3050; font-weight:700; }}
 .n.st {{ color:#7890a8; font-style:italic; }}
-.b    {{ font-size:10px; padding:1px 6px; border-radius:3px; flex-shrink:0; font-weight:700;
-         max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }}
-.as   {{ background:#dbeafe; color:#1d4ed8; }}
-.ip   {{ background:#dcfce7; color:#166534; }}
-.of   {{ background:#fef3c7; color:#92400e; }}
-.spd  {{ font-size:10px; color:#9ab4cc; flex-shrink:0; }}
-.leaflet-popup-content-wrapper {{
-  background:#fff !important; border:1px solid #b8cedd !important;
-  border-radius:10px !important; font-family:Verdana,sans-serif !important;
-  box-shadow:0 8px 24px rgba(0,0,0,.18) !important;}}
-.leaflet-popup-tip {{ background:#fff !important; }}
-
-.remote-help {{
-  position:absolute;
-  left:55px;
-  bottom:18px;
-  z-index:950;
-  background:rgba(10,22,40,.88);
-  color:#dbeafe;
-  border:1px solid #31547a;
-  border-radius:6px;
-  padding:6px 10px;
-  font-size:10px;
-  letter-spacing:.5px;
-  box-shadow:0 2px 8px rgba(0,0,0,.25);
-  pointer-events:none;}}
-
-.remote-help strong {{
-  color:#ffffff;}}
-
+.b {{ font-size:10px; padding:1px 6px; border-radius:3px; flex-shrink:0; font-weight:700; max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }}
+.as {{ background:#dbeafe; color:#1d4ed8; }}
+.ip {{ background:#dcfce7; color:#166534; }}
+.of {{ background:#fef3c7; color:#92400e; }}
+.spd {{ font-size:10px; color:#9ab4cc; flex-shrink:0; }}
+.ship-marker {{ cursor:pointer; transform-origin:center; }}
+.maplibregl-popup-content {{ background:#fff; border:1px solid #b8cedd; border-radius:10px; font-family:Verdana,sans-serif; box-shadow:0 8px 24px rgba(0,0,0,.18); padding:12px; }}
+.maplibregl-popup-tip {{ border-top-color:#fff !important; }}
+.remote-help {{ position:absolute; left:55px; bottom:18px; z-index:10; background:rgba(10,22,40,.88); color:#dbeafe; border:1px solid #31547a; border-radius:6px; padding:6px 10px; font-size:10px; letter-spacing:.5px; box-shadow:0 2px 8px rgba(0,0,0,.25); pointer-events:none; }}
+.remote-help strong {{ color:#fff; }}
 </style>
 </head>
 <body>
 <header>
   <div style="min-width:140px"></div>
-  <div class="title">
-    <h1>MSC Cruises &amp; Explora Journeys</h1>
-    <p>Fleet Live Tracker</p>
-  </div>
-  <div class="info">
-    <span>Online: <span class="on">{online}</span>/{total} &nbsp;·&nbsp; Last known: <span class="off">{n_off}</span></span>
-    <span><span class="dot"></span>{now} &nbsp;·&nbsp; Refresh every {REFRESH} min</span>
-  </div>
+  <div class="title"><h1>MSC Cruises &amp; Explora Journeys</h1><p>Fleet Live Tracker</p></div>
+  <div class="info"><span>Online: <span class="on">{online}</span>/{total} &nbsp;·&nbsp; Last known: <span class="off">{n_off}</span></span><span><span class="dot"></span>{now} &nbsp;·&nbsp; Refresh every {REFRESH} min</span></div>
 </header>
 <div id="map"></div>
-<div class="remote-help">
-  REMOTE · <strong id="remote-mode">NAV</strong> · OK TO ZOOM
-</div>
-<div class="panel">
-  <div class="panel-title">Fleet</div>
-  <div class="list">
-{sidebar()}
-  </div>
-</div>
-<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js"></script>
+<div class="remote-help">REMOTE · <strong>NAV</strong> · OK TO SELECT SHIP</div>
+<div class="panel"><div class="panel-title">Fleet</div><div class="list">{sidebar()}</div></div>
 <script src="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.js"></script>
-<script src="https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.0.22/leaflet-maplibre-gl.js"></script>
 <script>
-var map = L.map('map').setView([30,10],3);
-L.maplibreGL({{
-  style: 'https://tiles.openfreemap.org/styles/liberty'
-}}).addTo(map);
-var mkrs = {{}};
-var fleetBounds = [];
-function shipSize(lux) {{
-  var z = map.getZoom();
-
-  var scale =
-    z <= 3 ? 1.50 :
-    z <= 4 ? 1.30 :
-    z <= 5 ? 1.15 :
-             1.00;
-
-  var baseW = lux ? 36 : 48;
-  var baseH = lux ? 21 : 28;
-
-  var w = Math.round(baseW * scale);
-  var h = Math.round(baseH * scale);
-
-  return {{
-    size: [w, h],
-    anchor: [Math.round(w / 2), Math.round(h / 2)]
-  }};
-}}
-
+const map = new maplibregl.Map({{ container:'map', style:'https://tiles.openfreemap.org/styles/liberty', center:[10,30], zoom:3, attributionControl:true }});
+map.addControl(new maplibregl.NavigationControl({{showCompass:false}}), 'top-left');
+const mkrs = {{}};
+const fleetBounds = new maplibregl.LngLatBounds();
+function shipScale(lux) {{ const z=map.getZoom(); const scale=z<=3?1.50:z<=4?1.30:z<=5?1.15:1; return {{w:Math.round((lux?36:48)*scale),h:Math.round((lux?21:28)*scale)}}; }}
+function sizeShipMarker(marker) {{ const d=shipScale(marker._shipLux); marker.getElement().style.width=d.w+'px'; marker.getElement().style.height=d.h+'px'; }}
 function mark(lat,lon,svg,mmsi,popup,offline,lux) {{
-  fleetBounds.push([lat,lon]);
-
-  var b64 = btoa(unescape(encodeURIComponent(svg)));
-  var dims = shipSize(lux);
-
-  var ic = L.icon({{
-    iconUrl:'data:image/svg+xml;base64,'+b64,
-    iconSize:dims.size,
-    iconAnchor:dims.anchor,
-    popupAnchor:[0,-16]
-  }});
-
-  var marker = L.marker([lat,lon], {{
-    icon:ic,
-    opacity:1
-  }}).addTo(map).bindPopup(popup, {{maxWidth:270}});
-
-  marker._shipSvg = b64;
-  marker._shipLux = lux;
-
-  mkrs[mmsi] = marker;
-}}
-
-function resizeShipMarkers() {{
-  Object.values(mkrs).forEach(function(marker) {{
-    var dims = shipSize(marker._shipLux);
-
-    var ic = L.icon({{
-      iconUrl:'data:image/svg+xml;base64,' + marker._shipSvg,
-      iconSize:dims.size,
-      iconAnchor:dims.anchor,
-      popupAnchor:[0,-16]
-    }});
-
-    marker.setIcon(ic);
-  }});
-}}
-
-map.on('zoomend', resizeShipMarkers);
-function fly(id) {{
-{fly_js}
-  if(mkrs[id]) mkrs[id].openPopup();
+  const el=document.createElement('div');
+  el.className='ship-marker';
+  el.innerHTML=svg;
+  el.style.opacity=offline?'0.78':'1';
+  el.style.display='flex';
+  el.style.alignItems='center';
+  el.style.justifyContent='center';
+  el.querySelector('svg').style.width='100%';
+  el.querySelector('svg').style.height='100%';
+  const pop=new maplibregl.Popup({{offset:22,maxWidth:'290px',closeButton:true}}).setHTML(popup);
+  const marker=new maplibregl.Marker({{element:el,anchor:'center'}}).setLngLat([lon,lat]).setPopup(pop).addTo(map);
+  marker._shipLux=lux;
+  mkrs[mmsi]=marker;
+  fleetBounds.extend([lon,lat]);
+  sizeShipMarker(marker);
 }}
 {markers()}
-
-// ZOOM sulle posizioni note
-if (fleetBounds.length > 1) {{
-  map.fitBounds(fleetBounds, {{
-    paddingTopLeft: [70, 70],
-    paddingBottomRight: [340, 70],
-    maxZoom: 4
-  }});
+function resizeShipMarkers() {{ Object.values(mkrs).forEach(sizeShipMarker); }}
+map.on('zoom', resizeShipMarkers);
+map.on('load', function() {{
+  if (!fleetBounds.isEmpty()) map.fitBounds(fleetBounds, {{padding:{{top:20,bottom:20,left:25,right:325}},maxZoom:5,duration:0}});
+}});
+function fly(id) {{ const marker=mkrs[id]; if (!marker) return; map.flyTo({{center:marker.getLngLat(),zoom:Math.max(map.getZoom(),6),essential:true}}); marker.togglePopup(); }}
+document.querySelectorAll('.row[data-mmsi]').forEach(row=>row.addEventListener('click',()=>fly(row.dataset.mmsi)));
+let remoteMode='NAV';
+let selectedShipIndex=-1;
+const selectableShips=Object.keys(mkrs);
+function updateRemoteHelp() {{ const help=document.querySelector('.remote-help'); help.innerHTML=remoteMode==='NAV'?'REMOTE · <strong>NAV</strong> · OK TO SELECT SHIP':'REMOTE · <strong>SHIPS</strong> · ↑↓ SELECT · ←→ ZOOM · OK DETAILS'; }}
+function clearShipSelection() {{ document.querySelectorAll('.row').forEach(row=>row.classList.remove('selected-ship')); }}
+function selectShip(index) {{
+  if (!selectableShips.length) return;
+  selectedShipIndex=(index+selectableShips.length)%selectableShips.length;
+  const mmsi=selectableShips[selectedShipIndex];
+  const marker=mkrs[mmsi];
+  clearShipSelection();
+  const row=document.querySelector('.row[data-mmsi="'+mmsi+'"]');
+  if (row) {{ row.classList.add('selected-ship'); row.scrollIntoView({{behavior:'smooth',block:'nearest'}}); }}
+  map.easeTo({{center:marker.getLngLat(),duration:450}});
 }}
-
-// Controlli telecomando Samsung TV
-let remoteMode = 'NAV';
-
-function setRemoteMode(mode) {{
-  remoteMode = mode;
-
-  const el = document.getElementById('remote-mode');
-  const help = document.querySelector('.remote-help');
-
-  if (el) el.textContent = mode;
-
-  if (help) {{
-    help.innerHTML = mode === 'NAV'
-      ? 'REMOTE · <strong id="remote-mode">NAV</strong> · OK TO ZOOM'
-      : 'REMOTE · <strong id="remote-mode">ZOOM</strong> · OK TO NAV';
-  }}
-}}
-
-document.addEventListener('keydown', function(e) {{
-  const pan = 180;
-
-  // OK / SELECT alterna NAV e ZOOM
-  if (e.key === 'Enter') {{
-    setRemoteMode(remoteMode === 'NAV' ? 'ZOOM' : 'NAV');
-    e.preventDefault();
-    return;
-  }}
-
-  if (remoteMode === 'NAV') {{
-    switch (e.key) {{
-      case 'ArrowUp':
-        map.panBy([0, -pan]);
-        break;
-
-      case 'ArrowDown':
-        map.panBy([0, pan]);
-        break;
-
-      case 'ArrowLeft':
-        map.panBy([-pan, 0]);
-        break;
-
-      case 'ArrowRight':
-        map.panBy([pan, 0]);
-        break;
-
-      default:
-        return;
-    }}
+document.addEventListener('keydown',function(e) {{
+  const key=e.key;
+  if (remoteMode==='NAV') {{
+    if (key==='ArrowUp') map.panBy([0,-180]);
+    else if (key==='ArrowDown') map.panBy([0,180]);
+    else if (key==='ArrowLeft') map.panBy([-180,0]);
+    else if (key==='ArrowRight') map.panBy([180,0]);
+    else if (key==='Enter') {{ remoteMode='SHIPS'; selectShip(0); updateRemoteHelp(); }}
+    else return;
   }} else {{
-    switch (e.key) {{
-      case 'ArrowUp':
-      case 'ArrowRight':
-        map.zoomIn();
-        break;
-
-      case 'ArrowDown':
-      case 'ArrowLeft':
-        map.zoomOut();
-        break;
-
-      default:
-        return;
-    }}
+    if (key==='ArrowUp') selectShip(selectedShipIndex-1);
+    else if (key==='ArrowDown') selectShip(selectedShipIndex+1);
+    else if (key==='ArrowLeft') map.zoomOut();
+    else if (key==='ArrowRight') map.zoomIn();
+    else if (key==='Enter') {{ const marker=mkrs[selectableShips[selectedShipIndex]]; if (marker) {{ map.flyTo({{center:marker.getLngLat(),zoom:Math.max(map.getZoom(),6),essential:true}}); marker.togglePopup(); }} }}
+    else if (key==='Escape'||key==='Backspace') {{ remoteMode='NAV'; selectedShipIndex=-1; clearShipSelection(); updateRemoteHelp(); }}
+    else return;
   }}
-
   e.preventDefault();
 }});
 </script>
 </body>
 </html>"""
-
     write_github_page(html)
     save_known()
-    print(f"[{datetime.now():%H:%M:%S}] aggiornato — {online}/{total} online, {n_off} offline con posizione nota")
-
+    print(f"[{datetime.now():%H:%M:%S}] aggiornato - {online}/{total} online, {n_off} offline con posizione nota")
 
 def write_excel():
     wb = openpyxl.Workbook()
@@ -1075,7 +1013,6 @@ async def run():
             f"{len(live)}/{len(FLEET)} navi ricevute "
             "in tempo reale"
         )
-
 
 if __name__ == "__main__":
     print(f"MSC & Explora Fleet Tracker — {len(FLEET)} navi — refresh every {REFRESH} min")
