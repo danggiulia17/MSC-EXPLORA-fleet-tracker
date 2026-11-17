@@ -445,11 +445,10 @@ def sidebar():
 
                 if len(ts) >= 10:
                     try:
-                        dt = datetime.fromisoformat(
-                            ts.replace("Z", "+00:00")
-                        )
-                        last_date = dt.strftime("%d/%m")
-                    except ValueError:
+                        date_part = ts[:10]
+                        year, month, day = date_part.split("-")
+                        last_date = f"{day}/{month}"
+                    except (ValueError, IndexError):
                         last_date = ""
 
                 badge_text = (
