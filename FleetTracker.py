@@ -3,12 +3,13 @@ Usa codici MMSI di ogni vessel per identificare posizione geografica, status e d
 Aggiornamento ogni 15 min, pubblica su GitHub Pages"""
 
 import asyncio, json, websockets, openpyxl, os
+from turtle import dot
 from datetime import datetime, timezone
 from pathlib import Path
 
 API_KEY = os.environ["AISSTREAM_API_KEY"]
 FOLDER = Path.cwd()
-REFRESH = 15  # minuti
+REFRESH = 30  # minuti
 REPO_DIR = FOLDER
 COLLECTION_MINUTES = 12
 
@@ -432,9 +433,31 @@ def sidebar():
             ncls   = 'n on' if online else ('n st' if p else 'n')
             fly    = f'onclick="fly(\'{mmsi}\')"' if p else ''
             if online:
-                badge = f'<span class="b as">At Sea</span>' if loc == "At Sea" else f'<span class="b ip" title="{loc}">{loc[:13]}{"…" if len(loc) > 13 else ""}</span>'
+                badge = (
+                    f'<span class="b as">At Sea</span>'
+                    if loc == "At Sea"
+                    else f'<span class="b ip" title="{loc}">'
+                         f'{loc[:13]}{"…" if len(loc) > 13 else ""}</span>'
+                )
             elif p:
-                badge = '<span class="b of">Offline</span>'
+                ts = str(p.get("timestamp", ""))
+                last_date = ""
+
+                if len(ts) >= 10:
+                    try:
+                        dt = datetime.fromisoformat(
+                            ts.replace("Z", "+00:00")
+                        )
+                        last_date = dt.strftime("%d/%m")
+                    except ValueError:
+                        last_date = ""
+
+                badge_text = (
+                    f"Offline {last_date}"
+                    if last_date
+                    else "Offline"
+                )
+                badge = f'<span class="b of">{badge_text}</span>'
             else:
                 badge = ''
             rows.append(f'<div class="row" {fly}><div class="dot" style="{dot}"></div>'
@@ -564,19 +587,18 @@ header {{
 .cls  {{
   font-size:9px; font-weight:700; letter-spacing:2px;
   text-transform:uppercase; color:#9ab4cc;
-  padding:4px 14px 2px; background:#f5f9fd;
-}}
+  padding:4px 14px 2px; background:#f5f9fd;}}
 .row {{
   display:flex; align-items:center; gap:7px;
   padding:3px 11px; cursor:pointer;
-  border-bottom:1px solid #eef3f8; transition:background .12s;
-}}
+  border-bottom:1px solid #eef3f8; transition:background .12s;}}
 .row:hover {{ background:#e4eef8; }}
 .n    {{ font-size:12px; color:#9ab4cc; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
 .n.on {{ color:#1a3050; font-weight:700; }}
 .n.st {{ color:#7890a8; font-style:italic; }}
+.b    {{ font-size:10px; padding:1px 6px; border-radius:3px; flex-shrink:0; font-weight:700; }}
 .b    {{ font-size:10px; padding:1px 6px; border-radius:3px; flex-shrink:0; font-weight:700;
-         max-width:90px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }}
+         max-width:105px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }}
 .as   {{ background:#dbeafe; color:#1d4ed8; }}
 .ip   {{ background:#dcfce7; color:#166534; }}
 .of   {{ background:#fef3c7; color:#92400e; }}
@@ -584,15 +606,30 @@ header {{
 .leaflet-popup-content-wrapper {{
   background:#fff !important; border:1px solid #b8cedd !important;
   border-radius:10px !important; font-family:Verdana,sans-serif !important;
-  box-shadow:0 8px 24px rgba(0,0,0,.18) !important;
-}}
-.leaflet-popup-tip {{ background:#fff !important; }}
+  box-shadow:0 8px 24px rgba(0,0,0,.18) !important;}}
 .leaflet-popup-tip {{ background:#fff !important; }}
 
 .leaflet-tile-pane {{
-  filter: brightness(0.78) contrast(1.16) saturate(0.72);
-}}
-</style>
+  filter: brightness(0.78) contrast(1.16) saturate(0.72);}}
+
+.remote-help {{
+  position:absolute;
+  left:55px;
+  bottom:18px;
+  z-index:950;
+  background:rgba(10,22,40,.88);
+  color:#dbeafe;
+  border:1px solid #31547a;
+  border-radius:6px;
+  padding:6px 10px;
+  font-size:10px;
+  letter-spacing:.5px;
+  box-shadow:0 2px 8px rgba(0,0,0,.25);
+  pointer-events:none;}}
+
+.remote-help strong {{
+  color:#ffffff;}}
+
 </style>
 </head>
 <body>
@@ -604,10 +641,13 @@ header {{
   </div>
   <div class="info">
     <span>Online: <span class="on">{online}</span>/{total} &nbsp;·&nbsp; Last known: <span class="off">{n_off}</span></span>
-    <span><span class="dot"></span>{now} &nbsp;·&nbsp; Refresh ogni {REFRESH} min</span>
+    <span><span class="dot"></span>{now} &nbsp;·&nbsp; Refresh every {REFRESH} min</span>
   </div>
 </header>
 <div id="map"></div>
+<div class="remote-help">
+  REMOTE: <strong id="remote-mode">NAV</strong> · OK = NAV/ZOOM
+</div>
 <div class="panel">
   <div class="panel-title">Fleet</div>
   <div class="list">
@@ -634,6 +674,66 @@ function fly(id) {{
   if(mkrs[id]) mkrs[id].openPopup();
 }}
 {markers()}
+
+// Controlli telecomando Samsung TV
+let remoteMode = 'NAV';
+
+function setRemoteMode(mode) {{
+  remoteMode = mode;
+  const el = document.getElementById('remote-mode');
+  if (el) el.textContent = mode;
+}}
+
+document.addEventListener('keydown', function(e) {{
+  const pan = 180;
+
+  // OK / SELECT alterna NAV e ZOOM
+  if (e.key === 'Enter') {{
+    setRemoteMode(remoteMode === 'NAV' ? 'ZOOM' : 'NAV');
+    e.preventDefault();
+    return;
+  }}
+
+  if (remoteMode === 'NAV') {{
+    switch (e.key) {{
+      case 'ArrowUp':
+        map.panBy([0, -pan]);
+        break;
+
+      case 'ArrowDown':
+        map.panBy([0, pan]);
+        break;
+
+      case 'ArrowLeft':
+        map.panBy([-pan, 0]);
+        break;
+
+      case 'ArrowRight':
+        map.panBy([pan, 0]);
+        break;
+
+      default:
+        return;
+    }}
+  }} else {{
+    switch (e.key) {{
+      case 'ArrowUp':
+      case 'ArrowRight':
+        map.zoomIn();
+        break;
+
+      case 'ArrowDown':
+      case 'ArrowLeft':
+        map.zoomOut();
+        break;
+
+      default:
+        return;
+    }}
+  }}
+
+  e.preventDefault();
+}});
 </script>
 </body>
 </html>"""
