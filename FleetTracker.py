@@ -1,9 +1,8 @@
 """MSC CRUISES & EXPLORA JOURNEYS FLEET TRACKER
 Usa codici MMSI di ogni vessel per identificare posizione geografica, status e destinazione
-Aggiornamento ogni 15 min, pubblica su GitHub Pages"""
+Aggiornamento ogni 30 min, pubblica su GitHub Pages"""
 
 import asyncio, json, websockets, openpyxl, os
-from turtle import dot
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -87,7 +86,8 @@ PORTS = {
     "ESSCP": "Santa Cruz de La Palma",
     "ESTGN": "Tarragona",
     # FRANCIA
-    "FRMAR": "Marsiglia",
+    "FRMAR": "Marseille",
+    "FRMRS": "Marseille",
     "FRTLN": "Tolone",
     "FRAJC": "Ajaccio",
     "FRLEH": "Le Havre",
@@ -104,6 +104,7 @@ PORTS = {
     "GRJMK": "Mykonos",
     "GRCFU": "Corfù",
     "GRKAT": "Katakolon",
+    "GRKAK": "Katakolon",
     "GRCEA": "Cefalonia",
     "GRSYR": "Syros",
     # TURCHIA
@@ -377,7 +378,17 @@ def save_known():
 # codice del porto in nome
 def port_name(raw):
     raw = (raw or "").strip().upper()
-    return PORTS.get(raw[:5], raw.title()) if raw else ""
+
+    if not raw:
+        return ""
+
+    code = raw[:5]
+
+    if code in PORTS:
+        return PORTS[code]
+
+    print(f"  → PORTO NON ANCORA MAPPATO DA AGGIUNGERE: {raw}")
+    return raw.title()
 
 # porto vs at sea
 def location(p):
@@ -394,50 +405,115 @@ def darken(c, n=50):
 
 # icone nave MSC o EXPLORA (più piccole, luxury)
 def ship_icon(color, luxury, offline=False):
-    s  = darken(color)
-    op = ' opacity="0.38"' if offline else ''
+    outline = "#132033"
+    detail = "#ffffff"
+    op = ' opacity="0.55"' if offline else ''
+
     w, h = (36, 21) if luxury else (48, 28)
+
     if luxury:
-        body = (f'<path d="M4 36 L4 30 L8 30 L8 26 Q8 24 10 24 L70 24 L76 24 Q80 24 84 27 L90 30 L92 30 L92 34 Q70 40 48 40 Q24 40 4 36 Z" '
-                f'fill="{color}" stroke="{s}" stroke-width="1.5"/>'
-                f'<rect x="10" y="16" width="55" height="8" rx="1" fill="{s}" opacity="0.85"/>'
-                f'<rect x="30" y="10" width="7" height="7" rx="1" fill="{s}"/>'
-                f'<rect x="42" y="10" width="7" height="7" rx="1" fill="{s}"/>'
-                f'<line x1="33" y1="5" x2="33" y2="10" stroke="{s}" stroke-width="1.2"/>'
-                f'<line x1="45" y1="5" x2="45" y2="10" stroke="{s}" stroke-width="1.2"/>'
-                f'<line x1="4" y1="36" x2="92" y2="34" stroke="#dc2626" stroke-width="1.2"/>')
+        body = (
+            f'<path d="M4 36 L4 30 L8 30 L8 26 Q8 24 10 24 '
+            f'L70 24 L76 24 Q80 24 84 27 L90 30 L92 30 '
+            f'L92 34 Q70 40 48 40 Q24 40 4 36 Z" '
+            f'fill="{color}" stroke="{outline}" stroke-width="2.8"/>'
+
+            f'<rect x="10" y="16" width="55" height="8" rx="1" '
+            f'fill="{detail}" stroke="{outline}" stroke-width="1"/>'
+
+            f'<rect x="30" y="10" width="7" height="7" rx="1" '
+            f'fill="{outline}"/>'
+
+            f'<rect x="42" y="10" width="7" height="7" rx="1" '
+            f'fill="{outline}"/>'
+
+            f'<line x1="33" y1="5" x2="33" y2="10" '
+            f'stroke="{outline}" stroke-width="1.6"/>'
+
+            f'<line x1="45" y1="5" x2="45" y2="10" '
+            f'stroke="{outline}" stroke-width="1.6"/>'
+
+            f'<circle cx="20" cy="20" r="1.3" fill="{outline}"/>'
+            f'<circle cx="27" cy="20" r="1.3" fill="{outline}"/>'
+            f'<circle cx="55" cy="20" r="1.3" fill="{outline}"/>'
+
+            f'<line x1="4" y1="36" x2="92" y2="34" '
+            f'stroke="#dc2626" stroke-width="1.6"/>'
+        )
+
     else:
-        body = (f'<path d="M8 40 L8 34 Q8 32 10 32 L18 32 L18 24 Q18 22 20 22 L30 22 L30 18 '
-                f'Q30 16 32 16 L52 16 Q54 16 54 18 L54 22 L58 22 L58 16 Q58 14 60 14 L66 14 '
-                f'Q68 14 68 16 L68 22 L76 22 Q80 22 82 25 L88 32 L90 32 Q92 32 92 34 L92 40 '
-                f'Q70 46 50 46 Q28 46 8 40 Z" fill="{color}" stroke="{s}" stroke-width="2"/>'
-                f'<rect x="19" y="23" width="34" height="8" rx="1.5" fill="{s}" opacity="0.3"/>'
-                f'<rect x="59" y="14.5" width="8" height="7" rx="1" fill="{s}"/>'
-                f'<path d="M62 10 L64 14.5 L60 14.5 Z" fill="{s}"/>')
-    return f'<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" viewBox="0 0 100 52"{op}>{body}</svg>'
+        body = (
+            f'<path d="M8 40 L8 34 Q8 32 10 32 L18 32 L18 24 '
+            f'Q18 22 20 22 L30 22 L30 18 Q30 16 32 16 '
+            f'L52 16 Q54 16 54 18 L54 22 L58 22 L58 16 '
+            f'Q58 14 60 14 L66 14 Q68 14 68 16 L68 22 '
+            f'L76 22 Q80 22 82 25 L88 32 L90 32 '
+            f'Q92 32 92 34 L92 40 Q70 46 50 46 '
+            f'Q28 46 8 40 Z" '
+            f'fill="{color}" stroke="{outline}" stroke-width="3"/>'
+
+            f'<rect x="19" y="23" width="36" height="8" rx="1.5" '
+            f'fill="{detail}" stroke="{outline}" stroke-width="1"/>'
+
+            f'<rect x="59" y="14.5" width="8" height="7" rx="1" '
+            f'fill="{outline}"/>'
+
+            f'<path d="M62 10 L64 14.5 L60 14.5 Z" '
+            f'fill="{outline}"/>'
+
+            f'<circle cx="25" cy="27" r="1.35" fill="{outline}"/>'
+            f'<circle cx="33" cy="27" r="1.35" fill="{outline}"/>'
+            f'<circle cx="41" cy="27" r="1.35" fill="{outline}"/>'
+            f'<circle cx="49" cy="27" r="1.35" fill="{outline}"/>'
+
+            f'<line x1="11" y1="37" x2="86" y2="37" '
+            f'stroke="{detail}" stroke-width="1.4" opacity="0.85"/>'
+        )
+
+    return (
+        f'<svg xmlns="http://www.w3.org/2000/svg" '
+        f'width="{w}" height="{h}" '
+        f'viewBox="0 0 100 52"{op}>'
+        f'{body}'
+        f'</svg>'
+    )
 
 # sidebar/legenda
 def sidebar():
     rows = []
+
     for cls in CLASS_ORDER:
         ships = [(m, v) for m, v in FLEET.items() if v[1] == cls]
         if not ships:
             continue
+
         rows.append(f'<div class="cls">{cls}</div>')
+
         for mmsi, (name, _, color, _) in ships:
             online = mmsi in live
-            p      = known.get(mmsi)
-            loc    = location(p) if p else ""
-            spd    = f'{float(p.get("sog", 0)):.0f} kn' if online and p else ""
-            dot    = f'background:{color}' + ('' if online else ';opacity:0.28')
-            ncls   = 'n on' if online else ('n st' if p else 'n')
-            fly    = f'onclick="fly(\'{mmsi}\')"' if p else ''
+            p = known.get(mmsi)
+            loc = location(p) if p else ""
+            spd = (
+                f'{float(p.get("sog", 0) or 0):.0f} kn'
+                if online and p
+                else ""
+            )
+            dot_style = (
+                f'background:{color}'
+                + ('' if online else ';opacity:0.45')
+            )
+            ncls = 'n on' if online else ('n st' if p else 'n')
+            fly = f'onclick="fly(\'{mmsi}\')"' if p else ''
+
             if online:
                 badge = (
-                    f'<span class="b as">At Sea</span>'
+                    '<span class="b as">At Sea</span>'
                     if loc == "At Sea"
-                    else f'<span class="b ip" title="{loc}">'
-                         f'{loc[:13]}{"…" if len(loc) > 13 else ""}</span>'
+                    else (
+                        f'<span class="b ip" title="{loc}">'
+                        f'{loc[:16]}{"…" if len(loc) > 16 else ""}'
+                        f'</span>'
+                    )
                 )
             elif p:
                 ts = str(p.get("timestamp", ""))
@@ -445,23 +521,33 @@ def sidebar():
 
                 if len(ts) >= 10:
                     try:
-                        date_part = ts[:10]
-                        year, month, day = date_part.split("-")
+                        _, month, day = ts[:10].split("-")
                         last_date = f"{day}/{month}"
                     except (ValueError, IndexError):
                         last_date = ""
 
-                badge_text = (
-                    f"Offline {last_date}"
-                    if last_date
-                    else "Offline"
+                last_port = port_name(p.get("destination", ""))
+                badge_text = f"Offline {last_date}" if last_date else "Offline"
+                if last_port:
+                    badge_text += f" · {last_port}"
+
+                badge = (
+                    f'<span class="b of" title="{badge_text}">'
+                    f'{badge_text}'
+                    f'</span>'
                 )
-                badge = f'<span class="b of">{badge_text}</span>'
             else:
                 badge = ''
-            rows.append(f'<div class="row" {fly}><div class="dot" style="{dot}"></div>'
-                        f'<span class="{ncls}">{name}</span>{badge}'
-                        f'<span class="spd">{spd}</span></div>')
+
+            rows.append(
+                f'<div class="row" {fly}>'
+                f'<div class="dot" style="{dot_style}"></div>'
+                f'<span class="{ncls}">{name}</span>'
+                f'{badge}'
+                f'<span class="spd">{spd}</span>'
+                f'</div>'
+            )
+
     return "\n".join(rows)
 
 #popup marker dettaglio nave su mappa
@@ -541,12 +627,13 @@ def write_html():
     )
 
     html = f"""<!DOCTYPE html>
-<html lang="it">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta http-equiv="refresh" content="{REFRESH * 60}">
 <title>MSC & Explora Fleet Tracker</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css"/>
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.css"/>
 <style>
 * {{ box-sizing:border-box; margin:0; padding:0; font-family:Verdana,sans-serif; }}
 body {{ background:#d8e8f0; height:100vh; display:flex; flex-direction:column; overflow:hidden; }}
@@ -559,8 +646,8 @@ header {{
 }}
 .title {{ text-align:center; flex:1; }}
 .title h1 {{ font-size:19px; font-weight:700; letter-spacing:2px; color:#fff; text-transform:uppercase; }}
-.title p  {{ font-size:10px; color:#7aaddb; letter-spacing:3px; text-transform:uppercase; margin-top:4px; }}
-.info {{ display:flex; align-items:center; gap:20px; font-size:11px; color:#7aaddb; min-width:260px; justify-content:flex-end; }}
+.title p  {{ font-size:13px; color:#7aaddb; letter-spacing:3px; text-transform:uppercase; margin-top:4px; }}
+.info {{ display:flex; align-items:center; gap:20px; font-size:13px; color:#7aaddb; min-width:260px; justify-content:flex-end; }}
 .dot  {{ width:8px; height:8px; border-radius:50%; background:#22c55e;
          animation:pulse 2s infinite; display:inline-block; margin-right:5px; }}
 @keyframes pulse {{
@@ -595,9 +682,8 @@ header {{
 .n    {{ font-size:12px; color:#9ab4cc; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
 .n.on {{ color:#1a3050; font-weight:700; }}
 .n.st {{ color:#7890a8; font-style:italic; }}
-.b    {{ font-size:10px; padding:1px 6px; border-radius:3px; flex-shrink:0; font-weight:700; }}
 .b    {{ font-size:10px; padding:1px 6px; border-radius:3px; flex-shrink:0; font-weight:700;
-         max-width:105px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }}
+         max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }}
 .as   {{ background:#dbeafe; color:#1d4ed8; }}
 .ip   {{ background:#dcfce7; color:#166534; }}
 .of   {{ background:#fef3c7; color:#92400e; }}
@@ -607,9 +693,6 @@ header {{
   border-radius:10px !important; font-family:Verdana,sans-serif !important;
   box-shadow:0 8px 24px rgba(0,0,0,.18) !important;}}
 .leaflet-popup-tip {{ background:#fff !important; }}
-
-.leaflet-tile-pane {{
-  filter: brightness(0.78) contrast(1.16) saturate(0.72);}}
 
 .remote-help {{
   position:absolute;
@@ -645,7 +728,7 @@ header {{
 </header>
 <div id="map"></div>
 <div class="remote-help">
-  REMOTE: <strong id="remote-mode">NAV</strong> · OK = NAV/ZOOM
+  REMOTE · <strong id="remote-mode">NAV</strong> · OK TO ZOOM
 </div>
 <div class="panel">
   <div class="panel-title">Fleet</div>
@@ -654,33 +737,107 @@ header {{
   </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js"></script>
+<script src="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.js"></script>
+<script src="https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.0.22/leaflet-maplibre-gl.js"></script>
 <script>
 var map = L.map('map').setView([30,10],3);
-L.tileLayer('https://tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png', {{
-  attribution:'© OpenStreetMap contributors',
-  maxZoom:19
+L.maplibreGL({{
+  style: 'https://tiles.openfreemap.org/styles/liberty'
 }}).addTo(map);
 var mkrs = {{}};
-function mark(lat,lon,svg,mmsi,popup,offline,lux) {{
-  var b64 = btoa(unescape(encodeURIComponent(svg)));
-  var sz  = lux ? [36,21] : [48,28];
-  var anc = lux ? [18,10] : [24,14];
-  var ic  = L.icon({{iconUrl:'data:image/svg+xml;base64,'+b64, iconSize:sz, iconAnchor:anc, popupAnchor:[0,-16]}});
-  mkrs[mmsi] = L.marker([lat,lon],{{icon:ic, opacity:offline?0.6:1}}).addTo(map).bindPopup(popup,{{maxWidth:270}});
+var fleetBounds = [];
+function shipSize(lux) {{
+  var z = map.getZoom();
+
+  var scale =
+    z <= 3 ? 1.50 :
+    z <= 4 ? 1.30 :
+    z <= 5 ? 1.15 :
+             1.00;
+
+  var baseW = lux ? 36 : 48;
+  var baseH = lux ? 21 : 28;
+
+  var w = Math.round(baseW * scale);
+  var h = Math.round(baseH * scale);
+
+  return {{
+    size: [w, h],
+    anchor: [Math.round(w / 2), Math.round(h / 2)]
+  }};
 }}
+
+function mark(lat,lon,svg,mmsi,popup,offline,lux) {{
+  fleetBounds.push([lat,lon]);
+
+  var b64 = btoa(unescape(encodeURIComponent(svg)));
+  var dims = shipSize(lux);
+
+  var ic = L.icon({{
+    iconUrl:'data:image/svg+xml;base64,'+b64,
+    iconSize:dims.size,
+    iconAnchor:dims.anchor,
+    popupAnchor:[0,-16]
+  }});
+
+  var marker = L.marker([lat,lon], {{
+    icon:ic,
+    opacity:1
+  }}).addTo(map).bindPopup(popup, {{maxWidth:270}});
+
+  marker._shipSvg = b64;
+  marker._shipLux = lux;
+
+  mkrs[mmsi] = marker;
+}}
+
+function resizeShipMarkers() {{
+  Object.values(mkrs).forEach(function(marker) {{
+    var dims = shipSize(marker._shipLux);
+
+    var ic = L.icon({{
+      iconUrl:'data:image/svg+xml;base64,' + marker._shipSvg,
+      iconSize:dims.size,
+      iconAnchor:dims.anchor,
+      popupAnchor:[0,-16]
+    }});
+
+    marker.setIcon(ic);
+  }});
+}}
+
+map.on('zoomend', resizeShipMarkers);
 function fly(id) {{
 {fly_js}
   if(mkrs[id]) mkrs[id].openPopup();
 }}
 {markers()}
 
+// ZOOM sulle posizioni note
+if (fleetBounds.length > 1) {{
+  map.fitBounds(fleetBounds, {{
+    paddingTopLeft: [70, 70],
+    paddingBottomRight: [340, 70],
+    maxZoom: 4
+  }});
+}}
+
 // Controlli telecomando Samsung TV
 let remoteMode = 'NAV';
 
 function setRemoteMode(mode) {{
   remoteMode = mode;
+
   const el = document.getElementById('remote-mode');
+  const help = document.querySelector('.remote-help');
+
   if (el) el.textContent = mode;
+
+  if (help) {{
+    help.innerHTML = mode === 'NAV'
+      ? 'REMOTE · <strong id="remote-mode">NAV</strong> · OK TO ZOOM'
+      : 'REMOTE · <strong id="remote-mode">ZOOM</strong> · OK TO NAV';
+  }}
 }}
 
 document.addEventListener('keydown', function(e) {{
@@ -886,19 +1043,17 @@ async def run():
                         {}
                     )
 
-                    destination = static_data.get(
-                        "Destination",
-                        ""
-                    )
+                    destination = str(
+                        static_data.get("Destination", "") or ""
+                    ).strip()
 
-                    known.setdefault(mmsi, {})[
-                        "destination"
-                    ] = destination
+                    # Non cancellare una destinazione valida già nota
+                    # quando AIS invia ShipStaticData con Destination vuota.
+                    if destination:
+                        known.setdefault(mmsi, {})["destination"] = destination
 
-                    if mmsi in live:
-                        live[mmsi][
-                            "destination"
-                        ] = destination
+                        if mmsi in live:
+                            live[mmsi]["destination"] = destination
 
     except Exception as error:
         print(
@@ -923,6 +1078,6 @@ async def run():
 
 
 if __name__ == "__main__":
-    print(f"MSC & Explora Fleet Tracker — {len(FLEET)} navi — refresh ogni {REFRESH} min")
+    print(f"MSC & Explora Fleet Tracker — {len(FLEET)} navi — refresh every {REFRESH} min")
     load_known()
     asyncio.run(run())
