@@ -10,7 +10,7 @@ API_KEY = os.environ["AISSTREAM_API_KEY"]
 FOLDER = Path.cwd()
 REFRESH = 30  # minuti
 REPO_DIR = FOLDER
-COLLECTION_MINUTES = 12
+COLLECTION_MINUTES = 13
 
 FLEET = {
     "357281000": ("MSC Armonia",       "Lirica",     "#C084FC", False),
@@ -615,10 +615,10 @@ def sidebar():
                     except (ValueError, IndexError):
                         last_date = ""
 
-                last_port = port_name(p.get("destination", ""))
+                last_position = loc
                 badge_text = f"Offline {last_date}" if last_date else "Offline"
-                if last_port:
-                    badge_text += f" · {last_port}"
+                if last_position:
+                    badge_text += f" · {last_position}"
 
                 badge = (
                     f'<span class="b of" title="{badge_text}">'
@@ -761,7 +761,7 @@ header {{ background:linear-gradient(135deg,#0a1628,#122444,#0d1e3a); border-bot
 </header>
 <div id="map"></div>
 <div class="remote-help">REMOTE · <strong>NAV</strong> · OK TO SELECT SHIP</div>
-<div class="panel"><div class="panel-title">Fleet</div><div class="list">{sidebar()}</div></div>
+<div class="panel"><div class="panel-title">FLEET (Last known positions)</div><div class="list">{sidebar()}</div></div>
 <script src="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.js"></script>
 <script>
 const map = new maplibregl.Map({{ container:'map', style:'https://tiles.openfreemap.org/styles/liberty', center:[10,30], zoom:3, attributionControl:true }});
