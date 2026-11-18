@@ -10,7 +10,7 @@ API_KEY = os.environ["AISSTREAM_API_KEY"]
 FOLDER = Path.cwd()
 REFRESH = 30  # minuti
 REPO_DIR = FOLDER
-COLLECTION_MINUTES = 13
+COLLECTION_MINUTES = 12
 
 FLEET = {
     "357281000": ("MSC Armonia",       "Lirica",     "#C084FC", False),
@@ -46,15 +46,15 @@ CLASS_ORDER = ["Explora", "World", "Seaside", "Meraviglia", "Fantasia", "Musica"
 
 # Porti ricavati da ship calendar
 PORTS = {
-    # ITALIA
-    "ITGOA": "Genova",
+    # ITALY
+    "ITGOA": "Genoa",
     "ITCIV": "Civitavecchia",
     "ITPAL": "Palermo",
     "ITPMO": "Palermo",
-    "ITNAP": "Napoli",
+    "ITNAP": "Naples",
     "ITBRI": "Bari",
     "ITTRS": "Trieste",
-    "ITVCE": "Venezia",
+    "ITVCE": "Venice",
     "ITLIV": "Livorno",
     "ITANC": "Ancona",
     "ITMES": "Messina",
@@ -63,72 +63,81 @@ PORTS = {
     "ITCAG": "Cagliari",
     "ITBDS": "Brindisi",
     "ITREG": "Reggio Calabria",
-    "ITSIR": "Siracusa",
+    "ITSIR": "Syracuse",
     "ITOLB": "Olbia",
     "ITMIL": "Milazzo",
     "ITSVN": "Savona",
-    # SPAGNA
-    "ESBCN": "Barcellona",
+
+    # SPAIN
+    "ESBCN": "Barcelona",
     "ESVLC": "Valencia",
-    "ESPAL": "Palma di Maiorca",
+    "ESPAL": "Palma de Mallorca",
     "ESMAH": "Mahon",
     "ESLPA": "Las Palmas",
     "ESTCI": "Santa Cruz de Tenerife",
     "ESALI": "Alicante",
-    "ESCAD": "Cadice",
+    "ESCAD": "Cadiz",
     "ESVGO": "Vigo",
     "ESGIJ": "Gijon",
-    "ESLCG": "La Coruña",
+    "ESLCG": "La Coruna",
     "ESBIO": "Bilbao",
     "ESIBZ": "Ibiza",
-    "ESACE": "Arrecife di Lanzarote",
+    "ESACE": "Arrecife",
     "ESFUE": "Puerto del Rosario",
     "ESSCT": "Santa Cruz de Tenerife",
     "ESSCP": "Santa Cruz de La Palma",
     "ESTGN": "Tarragona",
-    # FRANCIA
+
+    # FRANCE
     "FRMAR": "Marseille",
     "FRMRS": "Marseille",
-    "FRTLN": "Tolone",
+    "FRTLN": "Toulon",
     "FRAJC": "Ajaccio",
     "FRLEH": "Le Havre",
     "FRLRH": "La Rochelle",
     "FRBRE": "Brest",
     "FRCFR": "Cherbourg",
     "FRCNL": "Cannes",
-    "FRSTN": "St Nazaire",
-    # GRECIA
-    "GRPIR": "Pireo",
+    "FRSTN": "Saint-Nazaire",
+
+    # GREECE
+    "GRPIR": "Piraeus",
     "GRHER": "Heraklion",
-    "GRRHO": "Rodi",
+    "GRRHO": "Rhodes",
     "GRSAN": "Santorini",
+    "GRJTR": "Santorini",
     "GRJMK": "Mykonos",
-    "GRCFU": "Corfù",
+    "GRCFU": "Corfu",
     "GRKAT": "Katakolon",
     "GRKAK": "Katakolon",
-    "GRCEA": "Cefalonia",
+    "GRCEA": "Kefalonia",
     "GRSYR": "Syros",
-    # TURCHIA
+
+    # TURKEY
     "TRIST": "Istanbul",
-    "TRIZM": "Smirne",
+    "TRIZM": "Izmir",
     "TRBOD": "Bodrum",
     "TRKUS": "Kusadasi",
     "TRMRM": "Marmaris",
-    # MAROCCO
+
+    # MOROCCO
     "MABAS": "Tanger Med",
     "MAAGA": "Agadir",
     "MACAS": "Casablanca",
-    "MATNG": "Tangeri",
-    # EGITTO
+    "MATNG": "Tangier",
+
+    # EGYPT
     "EGPSD": "Port Said",
-    "EGALY": "Alessandria",
+    "EGALY": "Alexandria",
     "EGSHK": "Sharm El-Sheikh",
-    "EGSCN": "Canale di Suez Nord",
-    "EGSCS": "Canale di Suez Sud",
+    "EGSCN": "Suez Canal North",
+    "EGSCS": "Suez Canal South",
+
     # UAE
     "AEDXB": "Dubai",
     "AEAUH": "Abu Dhabi",
     "AESRB": "Sir Bani Yas",
+
     # ASIA
     "SGSIN": "Singapore",
     "JPYOK": "Yokohama",
@@ -146,7 +155,7 @@ PORTS = {
     "JPHAK": "Hakodate",
     "JPHIS": "Hiroshima",
     "JPISK": "Ishigaki",
-    "JPMIY": "Miyako Is.",
+    "JPMIY": "Miyako Island",
     "JPKAN": "Kanazawa",
     "JPSKA": "Sakata",
     "JPYAT": "Yatsushiro",
@@ -160,7 +169,8 @@ PORTS = {
     "MYKLG": "Port Klang",
     "PHMNL": "Manila",
     "VNDAN": "Da Nang",
-    # AMERICA NORD
+
+    # NORTH AMERICA
     "USNYC": "New York",
     "USMIA": "Miami",
     "USFLL": "Fort Lauderdale",
@@ -176,9 +186,10 @@ PORTS = {
     "USJNU": "Juneau",
     "USKET": "Ketchikan",
     "USSIT": "Sitka",
-    "USICY": "Icy Strait / Hoonah",
+    "USICY": "Icy Strait Point",
     "USTRA": "Tracy Arm",
-    # CARAIBI
+
+    # CARIBBEAN / CENTRAL AMERICA
     "MXCUN": "Cozumel",
     "MXCSB": "Cabo San Lucas",
     "MXPVR": "Puerto Vallarta",
@@ -193,28 +204,28 @@ PORTS = {
     "DOLRM": "La Romana",
     "DOLRN": "La Romana",
     "DOPOP": "Puerto Plata",
-    "DOSAM": "Samana Bay",
+    "DOSAM": "Samana",
     "DOCBR": "Cabo Rojo",
     "DOAMB": "Amber Cove",
     "DOCAT": "Catalina Island",
-    "HNRTN": "Isla de Roatan",
+    "HNRTN": "Roatan",
     "BZCZE": "Belize City",
     "CRCAL": "Puerto Limon",
     "CRPUN": "Puntarenas",
-    "PAMIG": "Panama Canal (BLB)",
-    "PACTB": "Panama Canal (CTB)",
+    "PAMIG": "Panama Canal (Balboa)",
+    "PACTB": "Panama Canal (Cristobal)",
     "PALON": "Colon",
     "JMFAL": "Falmouth",
     "JMMBJ": "Montego Bay",
     "JMOCH": "Ocho Rios",
     "KYGEO": "George Town",
-    "TCGDT": "Grand Turk Island",
+    "TCGDT": "Grand Turk",
     "BSFPO": "Freeport",
     "BSNAS": "Nassau",
-    "AGSTJ": "St John's",
+    "AGSTJ": "St. John's",
     "DMROS": "Roseau",
     "GPPPT": "Pointe-à-Pitre",
-    "MQFDF": "Fort de France",
+    "MQFDF": "Fort-de-France",
     "VISTJ": "Charlotte Amalie",
     "VIRTW": "Road Town",
     "VIVGD": "Virgin Gorda",
@@ -222,16 +233,17 @@ PORTS = {
     "BQKRL": "Kralendijk",
     "AWORA": "Oranjestad",
     "CWWIL": "Willemstad",
-    "GDSGT": "Saint George",
+    "GDSGT": "St. George's",
     "KNBST": "Basseterre",
     "MSOCN": "Ocean Cay",
-    # AMERICA SUD
+
+    # SOUTH AMERICA
     "BRSSS": "Santos",
+    "BRSSZ": "Santos",
     "ARBUE": "Buenos Aires",
     "BRRIJ": "Rio de Janeiro",
-    "BRSSZ": "Santos",
     "BRSAL": "Salvador",
-    "BRMAO": "Maceió",
+    "BRMAO": "Maceio",
     "BRILS": "Ilheus",
     "BRITJ": "Itajai",
     "BRBZS": "Buzios",
@@ -240,10 +252,11 @@ PORTS = {
     "BRILB": "Ilhabela",
     "BRCPB": "Copacabana",
     "BRPOB": "Porto Belo",
-    "BRBLN": "Balneário Camboriú",
+    "BRBLN": "Balneario Camboriu",
     "UYMVD": "Montevideo",
     "UYPDE": "Punta del Este",
-    # EUROPA NORD
+
+    # NORTHERN EUROPE
     "GBSOU": "Southampton",
     "GBDVR": "Dover",
     "GBLIV": "Liverpool",
@@ -256,8 +269,8 @@ PORTS = {
     "GBSTW": "Stornoway",
     "IECIE": "Cork",
     "IEDUN": "Dun Laoghaire",
-    "DEHAM": "Amburgo",
-    "DEWAR": "Warnemünde",
+    "DEHAM": "Hamburg",
+    "DEWAR": "Warnemunde",
     "DEKIL": "Kiel",
     "NLRTM": "Rotterdam",
     "NLAMS": "Amsterdam",
@@ -266,63 +279,69 @@ PORTS = {
     "DKAAR": "Aarhus",
     "DKRNN": "Ronne",
     "DKSKA": "Skagen",
-    "SESTO": "Stoccolma",
+    "SESTO": "Stockholm",
     "SEVBY": "Visby",
     "FIHEL": "Helsinki",
     "PLGDY": "Gdynia",
     "EERTL": "Tallinn",
     "LVRIX": "Riga",
     "LTKLJ": "Klaipeda",
-    # NORVEGIA
+
+    # NORWAY
     "NOSVG": "Stavanger",
     "NOBGO": "Bergen",
     "NOOSL": "Oslo",
-    "NOALE": "Ålesund",
-    "NOTRH": "Tromsø",
-    "NOTOS": "Tromsø",
+    "NOALE": "Alesund",
+    "NOTRH": "Tromso",
+    "NOTOS": "Tromso",
     "NOTRD": "Trondheim",
     "NOHGD": "Haugesund",
     "NOKRS": "Kristiansand",
     "NOLYN": "Lyngdal",
     "NOSND": "Sandnes",
     "NOEID": "Eidfjord",
-    "NOFLM": "Flåm",
+    "NOFLM": "Flam",
     "NOLYR": "Longyearbyen",
-    "NOSVJ": "Vik i Sogn",
-    "NOHVN": "Honningsvåg",
+    "NOSVJ": "Vik",
+    "NOHVN": "Honningsvag",
     "NOGER": "Geiranger",
     "NOHEL": "Hellesylt",
     "NOOLD": "Olden",
-    "NOMOL": "Molde Fjord",
+    "NOMOL": "Molde",
     "NONFE": "Nordfjordeid",
     "NOULV": "Ulvik",
-    "NOMLY": "Maløy",
-    # ISLANDA
+    "NOMLY": "Maloy",
+
+    # ICELAND
     "ISREY": "Reykjavik",
-    "ISISA": "Ísafjörður",
+    "ISISA": "Isafjordur",
     "ISAKR": "Akureyri",
-    "ISSEY": "Seyðisfjörður",
-    # PORTOGALLO
-    "PTLIS": "Lisbona",
+    "ISSEY": "Seydisfjordur",
+
+    # PORTUGAL
+    "PTLIS": "Lisbon",
     "PTFNC": "Funchal",
     "PTPDL": "Ponta Delgada",
-    "PTLEI": "Leixões",
-    # CROAZIA / ADRIATICO
-    "HRSPU": "Spalato",
+    "PTLEI": "Leixoes",
+
+    # CROATIA / ADRIATIC
+    "HRSPU": "Split",
     "HRDBV": "Dubrovnik",
-    "HRZAD": "Zara",
+    "HRZAD": "Zadar",
     "MEKOT": "Kotor",
-    # MEDIO ORIENTE
+
+    # MIDDLE EAST
     "JOAQJ": "Aqaba",
     "QADOH": "Doha",
     "OMMCT": "Muscat",
     "BHBAH": "Bahrain",
+
     # AFRICA
-    "ZACPT": "Città del Capo",
+    "ZACPT": "Cape Town",
     "ZADUR": "Durban",
     "MZMPM": "Maputo",
     "MZPOM": "Pomene",
-    "MZPTI": "Isola Portoghese",
+    "MZPTI": "Portuguese Island",
     "MGNOS": "Nosy Be",
     "MGDIE": "Antsiranana",
     "SCVTX": "Port Victoria",
@@ -331,24 +350,28 @@ PORTS = {
     "CVMIN": "Mindelo",
     "NAWVB": "Walvis Bay",
     "TNLAG": "La Goulette",
-    # MEDITERRANEO ISOLE
-    "MTMLA": "La Valletta",
-    "MTVAL": "La Valletta",
+
+    # MEDITERRANEAN ISLANDS
+    "MTMLA": "Valletta",
+    "MTVAL": "Valletta",
     "MCMCM": "Monte Carlo",
     "CYLEM": "Limassol",
-    "GIBGI": "Gibilterra",
-    "GIB":   "Gibilterra",
+    "GIBGI": "Gibraltar",
+    "GIB": "Gibraltar",
+
     # CANADA
     "CAHAL": "Halifax",
     "CAVIC": "Victoria",
-    # AUSTRALIA / NZ
+
+    # AUSTRALIA / NEW ZEALAND
     "AUSYD": "Sydney",
     "AUMEL": "Melbourne",
     "AUCNS": "Cairns",
     "AUTSV": "Townsville",
     "NZAKL": "Auckland",
     "NZWLG": "Wellington",
-    # PACIFICO
+
+    # PACIFIC
     "WSAPW": "Apia",
     "ASPPG": "Pago Pago",
     "FJSUV": "Suva",
@@ -356,44 +379,55 @@ PORTS = {
 
 # Coordinate dei porti usate per riconoscere la posizione fisica della nave.
 PORT_GEOFENCES = {
-    "Genova": (44.4072, 8.9340, 18),
-    "Napoli": (40.8401, 14.2594, 18),
+    # ITALY
+    "Genoa": (44.4072, 8.9340, 18),
+    "Naples": (40.8401, 14.2594, 18),
     "Civitavecchia": (42.0924, 11.7957, 18),
     "Palermo": (38.1250, 13.3700, 18),
     "Messina": (38.1938, 15.5540, 15),
     "Catania": (37.5025, 15.0950, 15),
     "Bari": (41.1310, 16.8700, 15),
     "Trieste": (45.6500, 13.7700, 18),
-    "Venezia": (45.4400, 12.3200, 18),
+    "Venice": (45.4400, 12.3200, 18),
     "Livorno": (43.5510, 10.3010, 15),
     "La Spezia": (44.1050, 9.8250, 15),
     "Cagliari": (39.2130, 9.1090, 15),
 
+    # FRANCE / SPAIN
     "Marseille": (43.3150, 5.3660, 20),
     "Barcelona": (41.3540, 2.1650, 18),
     "Valencia": (39.4400, -0.3150, 18),
     "Palma de Mallorca": (39.5630, 2.6300, 18),
+
+    # NORTHERN EUROPE
     "Zeebrugge": (51.3400, 3.2040, 15),
     "Southampton": (50.8950, -1.4050, 15),
     "Rotterdam": (51.9500, 4.1500, 25),
     "Hamburg": (53.5350, 9.9500, 20),
 
+    # GREECE / TURKEY
     "Piraeus": (37.9400, 23.6350, 18),
+    "Santorini": (36.3869, 25.4286, 22),
     "Katakolon": (37.6450, 21.3200, 12),
     "Heraklion": (35.3430, 25.1450, 15),
     "Corfu": (39.6250, 19.9050, 15),
     "Istanbul": (41.0200, 28.9900, 20),
+    "Izmir": (38.4167, 27.1500, 18),
     "Kusadasi": (37.8600, 27.2550, 15),
 
-    "La Valletta": (35.8950, 14.5100, 15),
+    # MEDITERRANEAN / PORTUGAL
+    "Valletta": (35.8950, 14.5100, 15),
     "Lisbon": (38.7000, -9.1400, 18),
     "Funchal": (32.6450, -16.9100, 15),
 
+    # NORTH AMERICA / CARIBBEAN
     "Miami": (25.7780, -80.1770, 18),
     "Port Canaveral": (28.4100, -80.6100, 18),
     "New York": (40.6900, -74.0300, 20),
     "Nassau": (25.0800, -77.3400, 15),
     "Ocean Cay": (25.4210, -79.2040, 12),
+
+    # SOUTH AMERICA
     "Santos": (-23.9650, -46.3000, 20),
     "Buenos Aires": (-34.6000, -58.3700, 20),
     "Rio de Janeiro": (-22.8900, -43.1800, 20),
@@ -423,17 +457,19 @@ def save_known():
 # codice del porto in nome
 def port_name(raw):
     raw = (raw or "").strip().upper()
-
     if not raw:
         return ""
 
-    code = raw[:5]
+    # AIS può inviare rotte come ITGOA>ESLPA: la destinazione è l'ultimo codice.
+    route_parts = [part.strip() for part in raw.replace("-", ">").split(">") if part.strip()]
+    candidate = route_parts[-1] if route_parts else raw
+    code = candidate[:5]
 
     if code in PORTS:
         return PORTS[code]
 
     print(f"  → PORTO NON ANCORA MAPPATO DA AGGIUNGERE: {raw}")
-    return raw.title()
+    return candidate.title()
 
 # porto fisico vs navigazione
 def distance_km(lat1, lon1, lat2, lon2):
@@ -751,6 +787,24 @@ header {{ background:linear-gradient(135deg,#0a1628,#122444,#0d1e3a); border-bot
 .maplibregl-popup-tip {{ border-top-color:#fff !important; }}
 .remote-help {{ position:absolute; left:55px; bottom:18px; z-index:10; background:rgba(10,22,40,.88); color:#dbeafe; border:1px solid #31547a; border-radius:6px; padding:6px 10px; font-size:10px; letter-spacing:.5px; box-shadow:0 2px 8px rgba(0,0,0,.25); pointer-events:none; }}
 .remote-help strong {{ color:#fff; }}
+
+@media (min-width:2560px) and (min-height:1400px) {{
+  header {{ padding:20px 38px 28px; }}
+  .title h1 {{ font-size:30px; letter-spacing:3px; }}
+  .title p {{ font-size:20px; letter-spacing:5px; margin-top:7px; }}
+  .info {{ gap:30px; font-size:19px; min-width:480px; }}
+  .dot {{ width:12px; height:12px; margin-right:8px; }}
+  .panel {{ top:142px; right:22px; width:500px; max-height:calc(100vh - 168px); border-radius:14px; }}
+  .panel-title {{ font-size:17px; padding:14px 20px 11px; }}
+  .cls {{ font-size:14px; padding:6px 20px 4px; }}
+  .row {{ gap:10px; padding:5px 17px; }}
+  .n {{ font-size:18px; }}
+  .b {{ font-size:15px; padding:2px 9px; max-width:235px; }}
+  .spd {{ font-size:15px; }}
+  .remote-help {{ left:85px; bottom:28px; padding:10px 16px; font-size:15px; border-radius:9px; }}
+  .maplibregl-ctrl-group button {{ width:44px; height:44px; }}
+  .maplibregl-popup-content {{ font-size:16px; padding:18px; }}
+}}
 </style>
 </head>
 <body>
@@ -768,7 +822,7 @@ const map = new maplibregl.Map({{ container:'map', style:'https://tiles.openfree
 map.addControl(new maplibregl.NavigationControl({{showCompass:false}}), 'top-left');
 const mkrs = {{}};
 const fleetBounds = new maplibregl.LngLatBounds();
-function shipScale(lux) {{ const z=map.getZoom(); const scale=z<=3?1.50:z<=4?1.30:z<=5?1.15:1; return {{w:Math.round((lux?36:48)*scale),h:Math.round((lux?21:28)*scale)}}; }}
+function shipScale(lux) {{ const z=map.getZoom(); const zoomScale=z<=3?1.50:z<=4?1.30:z<=5?1.15:1; const screenScale=window.innerWidth>=2560?1.45:1; const scale=zoomScale*screenScale; return {{w:Math.round((lux?36:48)*scale),h:Math.round((lux?21:28)*scale)}}; }}
 function sizeShipMarker(marker) {{ const d=shipScale(marker._shipLux); marker.getElement().style.width=d.w+'px'; marker.getElement().style.height=d.h+'px'; }}
 function mark(lat,lon,svg,mmsi,popup,offline,lux) {{
   const el=document.createElement('div');
@@ -791,7 +845,7 @@ function mark(lat,lon,svg,mmsi,popup,offline,lux) {{
 function resizeShipMarkers() {{ Object.values(mkrs).forEach(sizeShipMarker); }}
 map.on('zoom', resizeShipMarkers);
 map.on('load', function() {{
-  if (!fleetBounds.isEmpty()) map.fitBounds(fleetBounds, {{padding:{{top:20,bottom:20,left:25,right:325}},maxZoom:5,duration:0}});
+  if (!fleetBounds.isEmpty()) {{ const rightPadding=window.innerWidth>=2560?535:325; map.fitBounds(fleetBounds,{{padding:{{top:20,bottom:20,left:25,right:rightPadding}},maxZoom:5,duration:0}}); }}
 }});
 function fly(id) {{ const marker=mkrs[id]; if (!marker) return; map.flyTo({{center:marker.getLngLat(),zoom:Math.max(map.getZoom(),6),essential:true}}); marker.togglePopup(); }}
 document.querySelectorAll('.row[data-mmsi]').forEach(row=>row.addEventListener('click',()=>fly(row.dataset.mmsi)));
