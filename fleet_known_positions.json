@@ -108,21 +108,21 @@
     "destination": "SXPHI"
   },
   "371861000": {
-    "lat": 51.11442666666667,
-    "lon": 1.7357083333333334,
-    "sog": 21.7,
-    "heading": 62,
+    "lat": 53.27835,
+    "lon": 4.625358333333334,
+    "sog": 15.9,
+    "heading": 35,
     "status": 0,
-    "timestamp": "2026-11-28 04:45:19.148359326 +0000 UTC",
-    "destination": "GBSOU"
+    "timestamp": "2026-11-28 14:09:06.003881668 +0000 UTC",
+    "destination": "DEHAM"
   },
   "356042000": {
-    "lat": 38.045325000000005,
-    "lon": 20.901041666666668,
-    "sog": 17.7,
-    "heading": 163,
-    "status": 0,
-    "timestamp": "2026-11-28 04:43:05.237336594 +0000 UTC",
+    "lat": 37.64564166666666,
+    "lon": 21.31985,
+    "sog": 0,
+    "heading": 241,
+    "status": 5,
+    "timestamp": "2026-11-28 14:03:58.78744685 +0000 UTC",
     "destination": "ITVCE"
   },
   "256389000": {
@@ -204,13 +204,13 @@
     "destination": "JPISG"
   },
   "249193000": {
-    "destination": "MXCZM",
-    "lat": 25.53818,
-    "lon": -79.84236666666668,
-    "sog": 10,
-    "heading": 353,
-    "status": 0,
-    "timestamp": "2026-11-28 04:48:58.436048162 +0000 UTC"
+    "destination": "USMIA",
+    "lat": 25.771508333333333,
+    "lon": -80.15558666666668,
+    "sog": 0,
+    "heading": 295,
+    "status": 5,
+    "timestamp": "2026-11-28 13:59:40.945649691 +0000 UTC"
   },
   "249973000": {
     "destination": "USMIA>SXPHI",
